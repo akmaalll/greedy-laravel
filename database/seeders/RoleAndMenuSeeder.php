@@ -55,7 +55,6 @@ class RoleAndMenuSeeder extends Seeder
             
             // Jadwal & Penugasan - Admin & Photographer
             ['name' => 'Jadwal & Penugasan', 'slug' => 'jadwal-penugasan', 'path' => null, 'icon' => 'ri-calendar-check-line', 'order_no' => 5],
-            ['parent' => 'Jadwal & Penugasan', 'name' => 'Jadwal Pesanan', 'slug' => 'jadwal-pesanan.index', 'path' => '/jadwal-pesanan', 'icon' => 'ri-calendar-event-line', 'order_no' => 1],
             ['parent' => 'Jadwal & Penugasan', 'name' => 'Penugasan Fotografer', 'slug' => 'penugasan-fotografer.index', 'path' => '/penugasan-fotografer', 'icon' => 'ri-user-star-line', 'order_no' => 2],
             
             // Ketersediaan - Photographer Only
@@ -154,7 +153,6 @@ class RoleAndMenuSeeder extends Seeder
             $photographerMenus = [
                 'dashboard',
                 'jadwal-penugasan',
-                'jadwal-pesanan.index',
                 'penugasan-fotografer.index',
                 'ketersediaan.index',
             ];

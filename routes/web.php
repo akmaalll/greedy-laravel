@@ -40,7 +40,6 @@ Route::middleware(['auth'])->group(function () {
     // Jadwal & Penugasan
     Route::resource('penugasan-fotografer', \App\Http\Controllers\PenugasanFotograferController::class)->middleware('check.permission:penugasan-fotografer.index');
     Route::resource('ketersediaan', \App\Http\Controllers\KetersediaanFotograferController::class)->middleware('check.permission:ketersediaan.index');
-    Route::resource('jadwal-pesanan', \App\Http\Controllers\JadwalPesananController::class)->middleware('check.permission:jadwal-pesanan.index');
 
     // Pembayaran
     Route::resource('pembayaran', \App\Http\Controllers\PembayaranController::class)->middleware('check.permission:pembayaran.index');

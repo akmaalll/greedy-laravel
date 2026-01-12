@@ -181,21 +181,12 @@
                         <p class="small mb-0">{{ $data->catatan ?: '-' }}</p>
                     </div>
 
-                    @if(auth()->user()->role->slug == 'client' && in_array($data->status, ['menunggu', 'dikonfirmasi', 'berlangsung']))
+                    @if(auth()->user()->role->slug == 'admin' && in_array($data->status, ['menunggu', 'dikonfirmasi', 'berlangsung']) && $sisa > 0)
                     <div class="mt-4 pt-2 border-top">
                         <div class="d-grid gap-2">
-                            @if($sisa > 0 && $data->status == 'dikonfirmasi')
-                                @if($data->penugasanFotografer->isNotEmpty())
-                                <a href="{{ route('pembayaran.create', ['pesanan_id' => $data->id]) }}" class="btn btn-success btn-lg">
-                                    <i class="ri-bank-card-line me-1"></i> Bayar Sekarang
-                                </a>
-                                @else
-                                <div class="alert alert-warning mb-0">
-                                    <i class="ri-information-line me-1"></i> 
-                                    Pembayaran dapat dilakukan setelah fotografer ditugaskan. Mohon tunggu sebentar.
-                                </div>
-                                @endif
-                            @endif
+                            <a href="{{ route('pembayaran.create', ['pesanan_id' => $data->id]) }}" class="btn btn-success btn-lg">
+                                <i class="ri-bank-card-line me-1"></i> Bayar Sekarang
+                            </a>
                         </div>
                     </div>
                     @endif

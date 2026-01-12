@@ -66,14 +66,6 @@ class Pesanan extends Model
     }
 
     /**
-     * Relasi ke JadwalPesanan
-     */
-    public function jadwalPesanan()
-    {
-        return $this->hasMany(JadwalPesanan::class, 'pesanan_id');
-    }
-
-    /**
      * Relasi ke Pembayaran
      */
     public function pembayaran()

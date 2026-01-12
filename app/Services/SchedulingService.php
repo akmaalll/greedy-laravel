@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\DB;
 
 class SchedulingService
 {
+    const WORKING_HOUR_START = '08:00:00';
+    const WORKING_HOUR_END = '17:00:00';
+
     public function __construct(
         protected PenugasanFotograferRepository $penugasanRepository
     ) {}
@@ -26,27 +29,40 @@ class SchedulingService
         if (!$tanggalString || !$mulaiString) {
             return false;
         }
+
         if (!$end) {
              $end = Carbon::parse($mulaiString)->addHour()->toTimeString();
         }
         $selesaiString = $end instanceof Carbon ? $end->format('H:i:s') : $end;
 
+        // 1. Enforce working hours (08:00 - 17:00)
+        if ($mulaiString < self::WORKING_HOUR_START || $selesaiString > self::WORKING_HOUR_END) {
+            return false;
+        }
+
         return User::whereRole('photographer')
-            ->whereHas('ketersediaan', function($query) use ($tanggalString, $mulaiString, $selesaiString) {
+            ->whereDoesntHave('ketersediaan', function($query) use ($tanggalString, $mulaiString, $selesaiString) {
+                // Conflict with manual "tidak_tersedia" blocks
                 $query->whereDate('tanggal', $tanggalString)
-                      ->where('status', 'tersedia')
-                      ->where('waktu_mulai', '<=', $mulaiString)
-                      ->where('waktu_selesai', '>=', $selesaiString);
+                      ->where('status', 'tidak_tersedia')
+                      ->where('waktu_mulai', '<', $selesaiString)
+                      ->where('waktu_selesai', '>', $mulaiString);
+            })
+            ->whereDoesntHave('penugasan', function($query) use ($tanggalString, $mulaiString, $selesaiString) {
+                // Conflict with existing active assignments (not cancelled or rejected)
+                $query->whereHas('pesanan', function($q) use ($tanggalString, $mulaiString, $selesaiString) {
+                    $q->whereDate('tanggal_acara', $tanggalString)
+                      ->whereIn('status', ['menunggu', 'dikonfirmasi', 'berlangsung'])
+                      ->where('waktu_mulai_acara', '<', $selesaiString)
+                      ->where(DB::raw('COALESCE(waktu_selesai_acara, DATE_ADD(waktu_mulai_acara, INTERVAL 1 HOUR))'), '>', $mulaiString);
+                })
+                ->whereIn('status', ['ditugaskan', 'diterima']);
             })
             ->exists();
     }
 
     /**
      * Greedy Algorithm to automatically assign photographer
-     * Criteria:
-     * 1. Availability (must be 'tersedia' on that date/time)
-     * 2. Performance/Rating (higher rating preferred)
-     * 3. Workload (least busy preferred among same availability)
      */
     public function assignPhotographer(Pesanan $pesanan)
     {
@@ -65,13 +81,22 @@ class SchedulingService
         }
         $selesaiString = $selesai instanceof Carbon ? $selesai->format('H:i:s') : $selesai;
 
-        // 1. Get all photographers who are available on this date and time range
+        // 1. Get available photographers using dynamic conflict detection
         $availablePhotographers = User::whereRole('photographer')
-            ->whereHas('ketersediaan', function($query) use ($tanggalString, $mulaiString, $selesaiString) {
+            ->whereDoesntHave('ketersediaan', function($query) use ($tanggalString, $mulaiString, $selesaiString) {
                 $query->whereDate('tanggal', $tanggalString)
-                      ->where('status', 'tersedia')
-                      ->where('waktu_mulai', '<=', $mulaiString)
-                      ->where('waktu_selesai', '>=', $selesaiString);
+                      ->where('status', 'tidak_tersedia')
+                      ->where('waktu_mulai', '<', $selesaiString)
+                      ->where('waktu_selesai', '>', $mulaiString);
+            })
+            ->whereDoesntHave('penugasan', function($query) use ($tanggalString, $mulaiString, $selesaiString) {
+                $query->whereHas('pesanan', function($q) use ($tanggalString, $mulaiString, $selesaiString) {
+                    $q->whereDate('tanggal_acara', $tanggalString)
+                      ->whereIn('status', ['menunggu', 'dikonfirmasi', 'berlangsung'])
+                      ->where('waktu_mulai_acara', '<', $selesaiString)
+                      ->where(DB::raw('COALESCE(waktu_selesai_acara, DATE_ADD(waktu_mulai_acara, INTERVAL 1 HOUR))'), '>', $mulaiString);
+                })
+                ->whereIn('status', ['ditugaskan', 'diterima']);
             })
             ->withCount(['penugasan' => function($query) use ($tanggalString) {
                 $query->whereHas('pesanan', function($q) use ($tanggalString) {
@@ -83,33 +108,20 @@ class SchedulingService
 
         \Log::info('Greedy Debug:', [
             'pesanan_id' => $pesanan->id,
-            'tanggal' => $tanggalString,
-            'mulai' => $mulaiString,
-            'selesai' => $selesaiString,
             'available_count' => $availablePhotographers->count(),
-            'photographers' => $availablePhotographers->pluck('name')->toArray()
         ]);
 
         if ($availablePhotographers->isEmpty()) {
-            return null; // Handle manual assignment if greedy fails
+            return null;
         }
 
-        // 2. Sort by Rating (Desc) then Workload (Asc) - The Greedy Choice
+        // 2. Greedy Choice: Best Rating, then Lowest Workload
         $selected = $availablePhotographers
             ->sortByDesc('rating_diterima_avg_rating')
             ->sortBy('penugasan_count')
             ->first();
 
-        // 3. Update photographer availability to 'dipesan'
-        // We only mark the record that covers this time slot
-        KetersediaanFotografer::where('fotografer_id', $selected->id)
-            ->where('tanggal', $tanggalString)
-            ->where('status', 'tersedia')
-            ->where('waktu_mulai', '<=', $mulaiString)
-            ->where('waktu_selesai', '>=', $selesaiString)
-            ->update(['status' => 'dipesan']);
-
-        // 4. Create assignment with detailed variables for visibility
+        // 3. Create assignment
         $rating = number_format($selected->rating_diterima_avg_rating ?? 0, 1);
         $workload = $selected->penugasan_count;
         
