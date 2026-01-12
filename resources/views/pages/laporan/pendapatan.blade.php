@@ -72,7 +72,7 @@
                         <td><span class="fw-bold">{{ $item->pesanan->nomor_pesanan }}</span></td>
                         <td>{{ $item->pesanan->klien->name }}</td>
                         <td>{{ strtoupper($item->metode_pembayaran) }}</td>
-                        <td class="text-end fw-bold">Rp {{ number_format($item->jumlah_bayar, 0, ',', '.') }}</td>
+                        <td class="text-end fw-bold">Rp {{ number_format($item->jumlah, 0, ',', '.') }}</td>
                     </tr>
                     @empty
                     <tr>

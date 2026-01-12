@@ -1,6 +1,7 @@
 @php
 use Illuminate\Support\Facades\Route;
 $configData = Helper::appClasses();
+
 @endphp
 
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">

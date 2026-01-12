@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Pesanan;
 use App\Models\Pembayaran;
+use App\Models\Pesanan;
 use App\Models\User;
-use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class LaporanController extends Controller
 {
@@ -33,19 +33,19 @@ class LaporanController extends Controller
         $start = $request->start_date ?? Carbon::now()->startOfMonth()->format('Y-m-d');
         $end = $request->end_date ?? Carbon::now()->format('Y-m-d');
 
-        $data = Pembayaran::whereBetween('tanggal_bayar', [$start, $end])
-            ->where('status_pembayaran', 'lunas')
+        $data = Pembayaran::whereBetween('waktu_bayar', [$start, $end])
+            ->where('status', 'lunas')
             ->with('pesanan.klien')
             ->get();
 
-        $totalPendapatan = $data->sum('jumlah_bayar');
+        $totalPendapatan = $data->sum('jumlah');
 
         return view('pages.laporan.pendapatan', compact('data', 'start', 'end', 'totalPendapatan'));
     }
 
     public function fotografer()
     {
-        $data = User::role('photographer')
+        $data = User::whereRole('photographer')
             ->withCount('penugasan')
             ->withAvg('ratingDiterima', 'rating')
             ->get();
