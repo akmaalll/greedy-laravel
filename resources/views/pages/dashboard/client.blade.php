@@ -64,7 +64,7 @@ $configData = Helper::appClasses();
   <div class="col-12">
     <div class="card">
         <div class="card-header d-flex align-items-center justify-content-between">
-            <h5 class="card-title m-0 me-2">Riwayat Pesanan Anda</h5>
+            <h5 class="card-title m-0">Riwayat Pesanan Terbaru</h5>
             <a href="{{ route('pesanan.index') }}" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
         </div>
         <div class="table-responsive">
@@ -73,19 +73,19 @@ $configData = Helper::appClasses();
                     <tr>
                         <th>Order #</th>
                         <th>Lokasi</th>
-                        <th>Tanggal Acara</th>
+                        <th>Tanggal</th>
                         <th>Total Harga</th>
                         <th>Status</th>
-                        <th>Aksi</th>
+                        <th class="text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($recent_history as $order)
                     <tr>
-                        <td class="fw-bold">#{{ $order->nomor_pesanan }}</td>
+                        <td class="fw-bold text-primary">#{{ $order->nomor_pesanan }}</td>
                         <td>{{ $order->lokasi_acara }}</td>
                         <td>{{ \Carbon\Carbon::parse($order->tanggal_acara)->format('d M Y') }}</td>
-                        <td>Rp {{ number_format($order->total_harga, 0, ',', '.') }}</td>
+                        <td class="fw-bold">Rp {{ number_format($order->total_harga, 0, ',', '.') }}</td>
                         <td>
                             @php
                                 $statusColors = [
@@ -95,12 +95,13 @@ $configData = Helper::appClasses();
                                     'selesai' => 'success',
                                     'dibatalkan' => 'danger',
                                 ];
+                                $color = $statusColors[$order->status] ?? 'secondary';
                             @endphp
-                            <span class="badge bg-label-{{ $statusColors[$order->status] ?? 'secondary' }}">
-                                {{ ucfirst($order->status) }}
+                            <span class="badge bg-label-{{ $color }} text-uppercase">
+                                {{ $order->status }}
                             </span>
                         </td>
-                        <td>
+                        <td class="text-center">
                             <a href="{{ route('pesanan.show', $order->id) }}" class="btn btn-sm btn-icon btn-text-secondary rounded-pill">
                                 <i class="ri-eye-line"></i>
                             </a>
@@ -108,7 +109,7 @@ $configData = Helper::appClasses();
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">Anda belum memiliki riwayat pesanan.</td>
+                        <td colspan="6" class="text-center py-4 text-muted">Belum ada riwayat pesanan.</td>
                     </tr>
                     @endforelse
                 </tbody>

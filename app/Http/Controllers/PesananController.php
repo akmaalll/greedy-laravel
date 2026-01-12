@@ -22,20 +22,26 @@ class PesananController extends Controller
     public function index()
     {
         $data = $this->service->all();
-        // If client, only show their orders
+        $paketLayanan = null;
+
+        // If client, only show their orders and fetch available packages
         if (auth()->user()->role->slug == 'client') {
             $data = $data->where('klien_id', auth()->id());
+            $paketLayanan = $this->paketService->all()->where('is_aktif', true);
         }
-        return view('pages.pesanan.index', compact('data'));
+
+        return view('pages.pesanan.index', compact('data', 'paketLayanan'));
     }
 
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request)
     {
-        $paketLayanan = $this->paketService->all();
-        return view('pages.pesanan.create', compact('paketLayanan'));
+        $paketLayanan = $this->paketService->all()->where('is_aktif', true);
+        $selectedPaketId = $request->query('selected_paket');
+        
+        return view('pages.pesanan.create', compact('paketLayanan', 'selectedPaketId'));
     }
 
     /**

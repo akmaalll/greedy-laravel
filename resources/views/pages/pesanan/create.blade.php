@@ -113,6 +113,17 @@
         const addButton = document.getElementById('add-item');
         let itemCount = 1;
 
+        // PRE-SELECT LOGIC
+        const selectedPaketId = "{{ $selectedPaketId ?? '' }}";
+        if (selectedPaketId) {
+            const select = document.querySelector('.paket-select');
+            if (select) {
+                select.value = selectedPaketId;
+                // Dispatch change event to trigger calculation
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
+
         function calculateTotal() {
             let subtotal = 0;
             document.querySelectorAll('.item-row').forEach(row => {
