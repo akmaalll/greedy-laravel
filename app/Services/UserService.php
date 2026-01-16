@@ -57,6 +57,6 @@ class UserService extends BaseService
 
     public function getPhotographers()
     {
-        return User::whereRole('photographer')->get();
+        return User::where('role_id', 4)->get();
     }
 }

@@ -18,7 +18,7 @@ class PenugasanFotograferController extends Controller
     {
         $data = $this->service->all();
         // If photographer, only show their assignments
-        if (auth()->user()->role->slug == 'photographer') {
+        if (auth()->user()->role_id == 4) {
             $data = $data->where('fotografer_id', auth()->id());
         }
         return view('pages.penugasan-fotografer.index', compact('data'));

@@ -40,7 +40,7 @@ class SchedulingService
             return false;
         }
 
-        return User::whereRole('photographer')
+        return User::where('role_id', 4)
             ->whereDoesntHave('ketersediaan', function($query) use ($tanggalString, $mulaiString, $selesaiString) {
                 // Conflict with manual "tidak_tersedia" blocks
                 $query->whereDate('tanggal', $tanggalString)
@@ -82,7 +82,7 @@ class SchedulingService
         $selesaiString = $selesai instanceof Carbon ? $selesai->format('H:i:s') : $selesai;
 
         // 1. Get available photographers using dynamic conflict detection
-        $availablePhotographers = User::whereRole('photographer')
+        $availablePhotographers = User::where('role_id', 4)
             ->whereDoesntHave('ketersediaan', function($query) use ($tanggalString, $mulaiString, $selesaiString) {
                 $query->whereDate('tanggal', $tanggalString)
                       ->where('status', 'tidak_tersedia')

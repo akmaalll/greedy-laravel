@@ -102,10 +102,13 @@ class User extends Authenticatable
         return $this->hasMany(RatingLayanan::class, 'klien_id');
     }
 
-    public function scopeWhereRole($query, $roleSlug)
+    public function scopeWhereRole($query, $role)
     {
-        return $query->whereHas('role', function($q) use ($roleSlug) {
-            $q->where('slug', $roleSlug);
+        if (is_int($role)) {
+            return $query->where('role_id', $role);
+        }
+        return $query->whereHas('role', function($q) use ($role) {
+            $q->where('slug', $role);
         });
     }
 

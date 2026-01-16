@@ -16,7 +16,7 @@ class KetersediaanFotograferController extends Controller
     public function index()
     {
         $data = $this->service->all();
-        if (auth()->user()->role->slug == 'photographer') {
+        if (auth()->user()->role_id == 4) {
             $data = $data->where('fotografer_id', auth()->id());
         }
         return view('pages.ketersediaan.index', compact('data'));
@@ -34,7 +34,7 @@ class KetersediaanFotograferController extends Controller
         $data = $request->validated();
         
         // If admin, use input photographer. If photographer, force auth user.
-        if (auth()->user()->role->slug === 'admin') {
+        if (auth()->user()->role_id === 2) {
              $request->validate([
                 'fotografer_id' => 'required|exists:users,id'
              ]);
@@ -59,7 +59,7 @@ class KetersediaanFotograferController extends Controller
     public function update(KetersediaanFotograferRequest $request, $id)
     {
         $data = $request->validated();
-        if (auth()->user()->role->slug === 'admin') {
+        if (auth()->user()->role_id === 2) {
              $request->validate([
                 'fotografer_id' => 'required|exists:users,id'
              ]);

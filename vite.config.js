@@ -52,6 +52,10 @@ function libsWindowAssignment() {
 }
 
 export default defineConfig({
+  build: {
+    emptyOutDir: true,
+    chunkSizeWarningLimit: 2000
+  },
   plugins: [
     laravel({
       input: [

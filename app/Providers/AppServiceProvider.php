@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Helpers\ViewConfigHelper;
 use App\Interfaces\Repositories\UserRepositoryInterface;
 use App\Repositories\UserRepository;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -36,9 +37,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (env('APP_ENV') === 'production') {
+            URL::forceScheme('https');
+        }
         // Define Gates for authorization
         \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
-            if ($user->role && $user->role->slug === 'super-admin') {
+            if ($user->role_id === 1) {
                 return true;
             }
         });
@@ -47,29 +51,29 @@ class AppServiceProvider extends ServiceProvider
             return $user->hasPermission($slug, $action);
         });
         // Create Helper alias for ViewConfigHelper
-        if (!class_exists('Helper')) {
+        if (! class_exists('Helper')) {
             class_alias(ViewConfigHelper::class, 'Helper');
         }
 
         // Share menu data with all views
         View::composer('*', function ($view) {
             $menus = collect();
-            
+
             if (auth()->check()) {
                 $role = auth()->user()->role;
             } else {
                 // Fallback to Super Admin menus for Guest/Demo if no auth
                 // Or just the first role found
-                $role = \App\Models\Role::where('slug', 'super-admin')->first();
+                $role = \App\Models\Role::find(1);
             }
 
             if ($role) {
                 $menus = $role->menus()
                     ->whereNull('parent_id')
                     ->wherePivot('can_read', true)
-                    ->with(['children' => function($q) use ($role) {
-                        $q->whereHas('roles', function($rq) use ($role) {
-                            $rq->where('roles.id', $role->id)->where('can_read', true);
+                    ->with(['children' => function ($q) use ($role) {
+                        $q->whereHas('roles', function ($rq) use ($role) {
+                        $rq->where('roles.id', $role->id)->where('can_read', true);
                         })->orderBy('order_no');
                     }])
                     ->orderBy('order_no')

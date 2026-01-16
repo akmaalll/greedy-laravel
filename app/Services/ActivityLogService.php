@@ -41,6 +41,19 @@ class ActivityLogService
     }
 
     /**
+     * Log aktivitas register
+     */
+    public function logRegister(): ActivityLog
+    {
+        $user = Auth::user();
+        return $this->log(
+            'register',
+            "User '{$user->name}' berhasil mendaftar",
+            $user
+        );
+    }
+
+    /**
      * Log aktivitas login
      */
     public function logLogin(): ActivityLog

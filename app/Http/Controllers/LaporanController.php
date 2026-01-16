@@ -45,7 +45,7 @@ class LaporanController extends Controller
 
     public function fotografer()
     {
-        $data = User::whereRole('photographer')
+        $data = User::where('role_id', 4)
             ->withCount('penugasan')
             ->withAvg('ratingDiterima', 'rating')
             ->get();

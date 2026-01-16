@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,29 +25,79 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (Auth::attempt($credentials)) {
-            $request->session()->regenerate();
-            
-            // Log aktivitas login
-            $this->activityLogService->logLogin();
-            
-            return redirect()->intended('/');
+        $user = User::where('email', $credentials['email'])->first();
+
+        if (! $user) {
+            return back()->withErrors(['email' => 'Email tidak ditemukan']);
         }
 
-        return back()->withErrors([
-            'email' => 'The provided credentials do not match our records.',
-        ])->onlyInput('email');
+        if (! \Hash::check($credentials['password'], $user->password)) {
+            return back()->withErrors(['email' => 'Password salah']);
+        }
+
+        if (! $user->role_id || ! $user->role) {
+            return back()->withErrors(['email' => 'Akun belum punya role']);
+        }
+
+        // ================================
+        // BAGIAN KRITIS UNTUK CPANEL
+        // ================================
+
+        Auth::loginUsingId($user->id, $request->filled('remember'));
+
+        // paksa tulis session
+        session()->put('auth_password_confirmed_at', time());
+        session()->put('login_time', now());
+
+        $request->session()->regenerate();
+        $request->session()->save();
+
+        // Double ensure
+        app('session')->save();
+
+        \Log::info('LOGIN CPANEL DEBUG', [
+            'session_id' => session()->getId(),
+            'user_id' => Auth::id(),
+        ]);
+
+        return redirect()->intended(route('dashboard'));
     }
 
     public function logout(Request $request)
     {
         // Log aktivitas logout sebelum logout
         $this->activityLogService->logLogout();
-        
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect('/login');
     }
-}
 
+    public function showRegister()
+    {
+        return view('pages.authentications.auth-register-basic');
+    }
+
+    public function register(Request $request)
+    {
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'terms' => ['required', 'accepted'],
+        ]);
+
+        $user = User::create([
+            'name' => strtoupper($request->name),
+            'email' => $request->email,
+            'password' => \Hash::make($request->password),
+            'role_id' => 3,
+        ]);
+
+        Auth::login($user);
+
+        return redirect()->intended('/');
+    }
+}

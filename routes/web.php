@@ -6,11 +6,84 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProductsController;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
+
 
 // Auth Routes
 Route::get('login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('login', [AuthController::class, 'login']);
 Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+Route::get('register', [AuthController::class, 'showRegister'])->name('register');
+Route::post('register', [AuthController::class, 'register'])->name('register.store');
+
+
+Route::get('/clear-all', function () {
+
+    \Artisan::call('config:clear');
+    \Artisan::call('cache:clear');
+    \Artisan::call('view:clear');
+
+    return "clear done";
+
+});
+
+Route::get('/cek-csrf', function () {
+    return [
+        'token' => csrf_token(),
+        'session_id' => session()->getId(),
+        'exists' => session()->isStarted()
+    ];
+});
+
+
+Route::get('/test-session', function () {
+    Auth::loginUsingId(7);
+
+    session()->put('test', 'ok');
+    session()->save();
+
+    return [
+        'auth' => Auth::check(),
+        'id' => Auth::id(),
+        'session_id' => session()->getId()
+    ];
+});
+
+
+Route::get('/__clear-cache/{key}', function ($key) {
+
+    // GANTI dengan key rahasia kamu
+    if ($key !== 'SECRET-12345') {
+        abort(403, 'Unauthorized');
+    }
+
+    Artisan::call('optimize:clear');
+    Artisan::call('config:clear');
+
+    return response()->json([
+        'status' => 'ok',
+        'message' => 'Cache & config cleared successfully'
+    ]);
+});
+
+Route::get('/__reset-password/{email}', function ($email) {
+    if (! request()->has('confirm') && request()->query('confirm') != 'yes') {
+        return "This is a dangerous route. Append ?confirm=yes to the URL to proceed. AND REMEMBER TO DELETE THIS ROUTE AFTER USE.";
+    }
+
+    $user = User::where('email', $email)->first();
+
+    if (! $user) {
+        return "User with email {$email} not found.";
+    }
+
+    $user->update([
+        'password' => Hash::make('password')
+    ]);
+
+    return "Password for {$email} reset to: password";
+});
 
 Route::middleware(['auth'])->group(function () {
     // Dashboard as home page

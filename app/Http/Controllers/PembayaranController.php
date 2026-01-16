@@ -16,7 +16,7 @@ class PembayaranController extends Controller
     {
         $query = \App\Models\Pembayaran::with('pesanan.klien');
         
-        if (auth()->user()->role->slug == 'client') {
+        if (auth()->user()->role_id == 3) {
             $query->whereHas('pesanan', function($q) {
                 $q->where('klien_id', auth()->id());
             });
@@ -38,7 +38,7 @@ class PembayaranController extends Controller
         $data = $request->validated();
         
         // Handle defaults for client
-        if (auth()->user()->role->slug == 'client') {
+        if (auth()->user()->role_id == 3) {
             $data['status'] = 'menunggu';
             if (empty($data['waktu_bayar'])) {
                 $data['waktu_bayar'] = now();

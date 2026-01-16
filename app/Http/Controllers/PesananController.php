@@ -25,7 +25,7 @@ class PesananController extends Controller
         $paketLayanan = null;
 
         // If client, only show their orders and fetch available packages
-        if (auth()->user()->role->slug == 'client') {
+        if (auth()->user()->role_id == 3) {
             $data = $data->where('klien_id', auth()->id());
             $paketLayanan = PaketLayanan::with('layanan.kategori')
                 ->where('is_aktif', true)

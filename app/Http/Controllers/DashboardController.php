@@ -17,11 +17,13 @@ class DashboardController extends Controller
     public function index()
     {
         $user = auth()->user();
-        $role = $user->role->slug;
+        // dd($user);
+        $role = $user->role_id;
 
-        if ($role === 'admin') {
+
+        if ($role === 2) {
             return $this->adminDashboard();
-        } elseif ($role === 'photographer') {
+        } elseif ($role === 4) {
             return $this->photographerDashboard();
         } else {
             return $this->clientDashboard();
@@ -33,7 +35,7 @@ class DashboardController extends Controller
         $data = [
             'total_orders' => Pesanan::count(),
             'total_revenue' => Pembayaran::where('status', 'lunas')->sum('jumlah'),
-            'active_photographers' => User::whereRole('photographer')->count(),
+            'active_photographers' => User::where('role_id', 4)->count(),
             'pending_orders' => Pesanan::where('status', 'menunggu')->count(),
             'recent_orders' => Pesanan::with('klien')->latest()->take(5)->get(),
             'monthly_earnings' => Pembayaran::where('status', 'lunas')
