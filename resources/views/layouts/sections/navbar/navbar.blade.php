@@ -54,7 +54,7 @@ $navbarDetached = ($navbarDetached ?? '');
         @endif
 
        <ul class="navbar-nav flex-row align-items-center ms-auto">
-          @if(isset($menuHorizontal))
+          {{-- @if(isset($menuHorizontal))
             <!-- Search -->
             <li class="nav-item navbar-search-wrapper me-1 me-xl-0">
               <a class="nav-link btn btn-text-secondary rounded-pill search-toggler fw-normal" href="javascript:void(0);">
@@ -394,7 +394,7 @@ $navbarDetached = ($navbarDetached ?? '');
               </li>
             </ul>
           </li>
-          <!--/ Notification -->
+          <!--/ Notification --> --}}
 
           <!-- User -->
           <li class="nav-item navbar-dropdown dropdown-user dropdown">
@@ -428,7 +428,7 @@ $navbarDetached = ($navbarDetached ?? '');
               <li>
                 <div class="dropdown-divider"></div>
               </li>
-              <li>
+              {{-- <li>
                 <a class="dropdown-item" href="{{ Route::has('profile.show') ? route('profile.show') : url('pages/profile-user') }}">
                   <i class="ri-user-3-line ri-22px me-3"></i><span class="align-middle">My Profile</span>
                 </a>
@@ -442,11 +442,11 @@ $navbarDetached = ($navbarDetached ?? '');
                     <span class="flex-shrink-0 badge badge-center rounded-pill bg-danger">4</span>
                   </span>
                 </a>
-              </li>
+              </li> --}}
 
-              <li>
+              {{-- <li>
                 <div class="dropdown-divider"></div>
-              </li>
+              </li> --}}
               @if (Auth::check())
                 <li>
                   <div class="d-grid px-4 pt-2 pb-1">
