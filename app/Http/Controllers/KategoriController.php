@@ -82,7 +82,7 @@ class KategoriController extends Controller
     {
         $this->service->delete($id);
 
-        if (request()->wantsJson()) {
+        if (request()->ajax() || request()->wantsJson()) {
             return \App\Helpers\ResponseHelper::success(null, 'Kategori berhasil dihapus!');
         }
 

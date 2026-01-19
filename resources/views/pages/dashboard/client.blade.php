@@ -16,7 +16,7 @@ $configData = Helper::appClasses();
             <h4 class="card-title mb-4">Selamat Datang, <span class="fw-bold">{{ auth()->user()->name }}!</span> ✨</h4>
             <p class="mb-0">Terima kasih telah mempercayakan kenangan Anda kepada kami.</p>
             <p>Total investasi kenangan Anda: <span class="fw-bold text-primary">Rp {{ number_format($total_spending, 0, ',', '.') }}</span></p>
-            <a href="{{ route('pesanan.create') }}" class="btn btn-primary">Booking Layanan Baru</a>
+            {{-- <a href="{{ route('pesanan.create') }}" class="btn btn-primary">Booking Layanan Baru</a> --}}
           </div>
         </div>
         <div class="col-md-6 text-center text-md-end order-1 order-md-2">

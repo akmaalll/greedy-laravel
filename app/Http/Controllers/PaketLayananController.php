@@ -40,9 +40,9 @@ class PaketLayananController extends Controller
         $data = $request->validated();
         $data['is_aktif'] = $request->boolean('is_aktif');
         
-        // Convert fitur array to JSON if provided
+        // Filter empty fitur items and handle the array
         if ($request->has('fitur') && is_array($request->fitur)) {
-            $data['fitur'] = json_encode(array_filter($request->fitur));
+            $data['fitur'] = array_filter($request->fitur);
         }
 
         $this->service->create($data);
@@ -78,9 +78,9 @@ class PaketLayananController extends Controller
         $data = $request->validated();
         $data['is_aktif'] = $request->boolean('is_aktif');
         
-        // Convert fitur array to JSON if provided
+        // Filter empty fitur items and handle the array
         if ($request->has('fitur') && is_array($request->fitur)) {
-            $data['fitur'] = json_encode(array_filter($request->fitur));
+            $data['fitur'] = array_filter($request->fitur);
         }
 
         $this->service->update($id, $data);
@@ -96,7 +96,7 @@ class PaketLayananController extends Controller
     {
         $this->service->delete($id);
 
-        if (request()->wantsJson()) {
+        if (request()->ajax() || request()->wantsJson()) {
             return \App\Helpers\ResponseHelper::success(null, 'Paket Layanan berhasil dihapus!');
         }
 

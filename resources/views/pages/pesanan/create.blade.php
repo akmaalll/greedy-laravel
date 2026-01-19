@@ -81,40 +81,50 @@
                                         <select name="items[0][paket_layanan_id]" class="form-select paket-select" required>
                                             <option value="">Pilih Paket</option>
                                             @foreach ($paketLayanan as $p)
-                                                <option value="{{ $p->id }}" data-price="{{ $p->harga_dasar }}">
+                                                <option value="{{ $p->id }}" data-price="{{ $p->harga_dasar }}"
+                                                    data-desc="{{ $p->deskripsi }}"
+                                                    data-fitur="{{ json_encode($p->fitur) }}">
                                                     {{ $p->nama }} - Rp
                                                     {{ number_format($p->harga_dasar, 0, ',', '.') }}
                                                 </option>
                                             @endforeach
                                         </select>
                                     </div>
-                                    <div class="mb-0">
-                                        <label class="form-label">Jumlah</label>
-                                        <input type="number" name="items[0][jumlah]" class="form-control jumlah-input"
-                                            value="1" min="1" required>
+                                </div>
+                                <div class="mb-3 d-none info-paket">
+                                    <div class="p-2 border rounded bg-white small">
+                                        <div class="fw-bold mb-1 text-primary">Detail Paket:</div>
+                                        <div class="desc-paket italic mb-2"></div>
+                                        <div class="fitur-paket"></div>
                                     </div>
                                 </div>
+                                <div class="mb-0">
+                                    <label class="form-label">Jumlah</label>
+                                    <input type="number" name="items[0][jumlah]" class="form-control jumlah-input"
+                                        value="1" min="1" required>
+                                </div>
                             </div>
-
-                            <button type="button" class="btn btn-sm btn-outline-primary mb-4" id="add-item">
-                                <i class="ri-add-line me-1"></i> Tambah Paket Lain
-                            </button>
-
-                            <div class="d-flex justify-content-between mb-2">
-                                <span>Subtotal</span>
-                                <span class="fw-bold" id="subtotal-display">Rp 0</span>
-                            </div>
-                            <div class="d-flex justify-content-between mb-4 border-top pt-2">
-                                <span class="h5">Total Estimasi</span>
-                                <span class="h5 text-primary" id="total-display">Rp 0</span>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary w-100">Buat Pesanan Sekarang</button>
                         </div>
+
+                        <button type="button" class="btn btn-sm btn-outline-primary mb-4 mx-5" id="add-item">
+                            <i class="ri-add-line me-1"></i> Tambah Paket Lain
+                        </button>
+
+                        <div class="d-flex justify-content-between mb-2 mx-5">
+                            <span>Subtotal</span>
+                            <span class="fw-bold" id="subtotal-display">Rp 0</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-4 border-top pt-2 mx-5">
+                            <span class="h5">Total Estimasi</span>
+                            <span class="h5 text-primary" id="total-display">Rp 0</span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary mx-5 mb-5">Buat Pesanan Sekarang</button>
                     </div>
                 </div>
             </div>
-        </form>
+    </div>
+    </form>
     </div>
 @endsection
 
@@ -138,6 +148,42 @@
                 }
             }
 
+            function updatePackageInfo(row) {
+                const select = row.querySelector('.paket-select');
+                const infoContainer = row.querySelector('.info-paket');
+                const descContainer = row.querySelector('.desc-paket');
+                const fiturContainer = row.querySelector('.fitur-paket');
+
+                const selectedOption = select.options[select.selectedIndex];
+                const desc = selectedOption.dataset.desc || '';
+                let fitur = [];
+                try {
+                    fitur = JSON.parse(selectedOption.dataset.fitur || '[]');
+                } catch (e) {
+                    fitur = [];
+                }
+
+                if (select.value && (desc || fitur.length > 0)) {
+                    infoContainer.classList.remove('d-none');
+                    descContainer.textContent = desc || 'Tidak ada deskripsi.';
+
+                    fiturContainer.innerHTML = '';
+                    if (fitur.length > 0) {
+                        const list = document.createElement('ul');
+                        list.className = 'list-unstyled mb-0 mt-1';
+                        fitur.forEach(item => {
+                            const li = document.createElement('li');
+                            li.innerHTML =
+                                `<i class="ri-checkbox-circle-line text-success me-1"></i>${item}`;
+                            list.appendChild(li);
+                        });
+                        fiturContainer.appendChild(list);
+                    }
+                } else {
+                    infoContainer.classList.add('d-none');
+                }
+            }
+
             function calculateTotal() {
                 let subtotal = 0;
                 document.querySelectorAll('.item-row').forEach(row => {
@@ -156,6 +202,14 @@
                 document.getElementById('total-display').innerText = formatted;
             }
 
+            container.addEventListener('change', function(e) {
+                if (e.target.classList.contains('paket-select')) {
+                    const row = e.target.closest('.item-row');
+                    updatePackageInfo(row);
+                    calculateTotal();
+                }
+            });
+
             addButton.addEventListener('click', function() {
                 const div = document.createElement('div');
                 div.className = 'item-row border rounded p-3 mb-3 bg-white position-relative';
@@ -168,11 +222,20 @@
                     <select name="items[${itemCount}][paket_layanan_id]" class="form-select paket-select" required>
                         <option value="">Pilih Paket</option>
                         @foreach ($paketLayanan as $p)
-                            <option value="{{ $p->id }}" data-price="{{ $p->harga_dasar }}">
+                            <option value="{{ $p->id }}" data-price="{{ $p->harga_dasar }}"
+                                data-desc="{{ $p->deskripsi }}"
+                                data-fitur="{{ json_encode($p->fitur) }}">
                                 {{ $p->nama }} - Rp {{ number_format($p->harga_dasar, 0, ',', '.') }}
                             </option>
                         @endforeach
                     </select>
+                </div>
+                <div class="mb-3 d-none info-paket">
+                    <div class="p-2 border rounded bg-white small">
+                        <div class="fw-bold mb-1 text-primary">Detail Paket:</div>
+                        <div class="desc-paket italic mb-2"></div>
+                        <div class="fitur-paket"></div>
+                    </div>
                 </div>
                 <div class="mb-0">
                     <label class="form-label">Jumlah</label>

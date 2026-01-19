@@ -15,7 +15,7 @@ class PaketLayananRequest extends BaseRequest
             'harga_dasar' => 'required|numeric|min:0',
             'harga_overtime' => 'nullable|numeric|min:0',
             'satuan_overtime' => 'nullable|in:jam,foto,menit',
-            'fitur' => 'nullable|json',
+            'fitur' => 'nullable|array',
             'is_aktif' => 'nullable|boolean',
         ];
     }

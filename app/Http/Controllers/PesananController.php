@@ -51,9 +51,10 @@ class PesananController extends Controller
             ->sortBy(function ($item) {
                 return $item->layanan->kategori->nama ?? 'Z Lainnya';
             });
+        $categories = \App\Models\Kategori::where('is_aktif', true)->get();
         $selectedPaketId = $request->query('selected_paket');
 
-        return view('pages.pesanan.create', compact('paketLayanan', 'selectedPaketId'));
+        return view('pages.pesanan.create', compact('paketLayanan', 'selectedPaketId', 'categories'));
     }
 
     /**

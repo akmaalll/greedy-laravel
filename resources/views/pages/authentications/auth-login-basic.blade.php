@@ -88,7 +88,7 @@
                             </a>
                         </p>
 
-                        <div class="divider my-5">
+                        {{-- <div class="divider my-5">
                             <div class="divider-text">or</div>
                         </div>
 
@@ -108,7 +108,7 @@
                             <a href="javascript:;" class="btn btn-icon rounded-circle btn-text-google-plus">
                                 <i class="tf-icons ri-google-fill"></i>
                             </a>
-                        </div>
+                        </div> --}}
                     </div>
                 </div>
                 <!-- /Login -->

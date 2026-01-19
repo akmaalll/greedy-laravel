@@ -52,13 +52,13 @@ class RoleController extends Controller
         try {
             $this->service->delete($id);
 
-            if (request()->wantsJson()) {
+            if (request()->ajax() || request()->wantsJson()) {
                 return \App\Helpers\ResponseHelper::success(null, 'Role berhasil dihapus');
             }
 
             return redirect()->route('role.index')->with('success', 'Role berhasil dihapus');
         } catch (\Exception $e) {
-            if (request()->wantsJson()) {
+            if (request()->ajax() || request()->wantsJson()) {
                 return \App\Helpers\ResponseHelper::error('Gagal menghapus role: ' . $e->getMessage());
             }
             return redirect()->back()->with('error', 'Gagal menghapus role');
