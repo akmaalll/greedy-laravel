@@ -74,6 +74,18 @@
                             <h5 class="mb-0">Pilih Paket Layanan</h5>
                         </div>
                         <div class="card-body">
+                            <div class="mb-4 pb-2 border-bottom">
+                                <label class="form-label fw-bold">1. Pilih Kategori Layanan</label>
+                                <select id="kategori-filter" class="form-select border-primary">
+                                    <option value="">-- Pilih Kategori --</option>
+                                    @foreach ($categories as $cat)
+                                        <option value="{{ $cat->id }}">{{ $cat->nama }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="form-text text-primary"><i class="ri-information-line me-1"></i>Pilih kategori
+                                    terlebih dahulu untuk melihat paket yang tersedia.</div>
+                            </div>
+
                             <div id="items-container">
                                 <div class="item-row border rounded p-3 mb-3 bg-light">
                                     <div class="mb-3">
@@ -83,25 +95,26 @@
                                             @foreach ($paketLayanan as $p)
                                                 <option value="{{ $p->id }}" data-price="{{ $p->harga_dasar }}"
                                                     data-desc="{{ $p->deskripsi }}"
-                                                    data-fitur="{{ json_encode($p->fitur) }}">
+                                                    data-fitur="{{ json_encode($p->fitur) }}"
+                                                    data-kategori-id="{{ $p->layanan->kategori_id ?? '' }}">
                                                     {{ $p->nama }} - Rp
                                                     {{ number_format($p->harga_dasar, 0, ',', '.') }}
                                                 </option>
                                             @endforeach
                                         </select>
                                     </div>
-                                </div>
-                                <div class="mb-3 d-none info-paket">
-                                    <div class="p-2 border rounded bg-white small">
-                                        <div class="fw-bold mb-1 text-primary">Detail Paket:</div>
-                                        <div class="desc-paket italic mb-2"></div>
-                                        <div class="fitur-paket"></div>
+                                    <div class="mb-3 d-none info-paket">
+                                        <div class="p-2 border rounded bg-white small">
+                                            <div class="fw-bold mb-1 text-primary">Detail Paket:</div>
+                                            <div class="desc-paket italic mb-2"></div>
+                                            <div class="fitur-paket"></div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="mb-0">
-                                    <label class="form-label">Jumlah</label>
-                                    <input type="number" name="items[0][jumlah]" class="form-control jumlah-input"
-                                        value="1" min="1" required>
+                                    <div class="mb-0">
+                                        <label class="form-label">Jumlah</label>
+                                        <input type="number" name="items[0][jumlah]" class="form-control jumlah-input"
+                                            value="1" min="1" required>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -133,20 +146,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             const container = document.getElementById('items-container');
             const addButton = document.getElementById('add-item');
+            const kategoriFilter = document.getElementById('kategori-filter');
             let itemCount = 1;
-
-            // PRE-SELECT LOGIC
-            const selectedPaketId = "{{ $selectedPaketId ?? '' }}";
-            if (selectedPaketId) {
-                const select = document.querySelector('.paket-select');
-                if (select) {
-                    select.value = selectedPaketId;
-                    // Dispatch change event to trigger calculation
-                    select.dispatchEvent(new Event('change', {
-                        bubbles: true
-                    }));
-                }
-            }
 
             function updatePackageInfo(row) {
                 const select = row.querySelector('.paket-select');
@@ -154,11 +155,13 @@
                 const descContainer = row.querySelector('.desc-paket');
                 const fiturContainer = row.querySelector('.fitur-paket');
 
+                if (!select || !infoContainer) return;
+
                 const selectedOption = select.options[select.selectedIndex];
-                const desc = selectedOption.dataset.desc || '';
+                const desc = selectedOption?.dataset.desc || '';
                 let fitur = [];
                 try {
-                    fitur = JSON.parse(selectedOption.dataset.fitur || '[]');
+                    fitur = JSON.parse(selectedOption?.dataset.fitur || '[]');
                 } catch (e) {
                     fitur = [];
                 }
@@ -188,9 +191,12 @@
                 let subtotal = 0;
                 document.querySelectorAll('.item-row').forEach(row => {
                     const select = row.querySelector('.paket-select');
-                    const jumlah = row.querySelector('.jumlah-input').value;
-                    const price = select.options[select.selectedIndex]?.dataset.price || 0;
-                    subtotal += parseFloat(price) * parseInt(jumlah);
+                    const jumlahInput = row.querySelector('.jumlah-input');
+                    if (select && jumlahInput) {
+                        const jumlah = parseInt(jumlahInput.value) || 0;
+                        const price = parseFloat(select.options[select.selectedIndex]?.dataset.price) || 0;
+                        subtotal += price * jumlah;
+                    }
                 });
 
                 const formatted = new Intl.NumberFormat('id-ID', {
@@ -198,14 +204,67 @@
                     currency: 'IDR',
                     minimumFractionDigits: 0
                 }).format(subtotal);
+
                 document.getElementById('subtotal-display').innerText = formatted;
                 document.getElementById('total-display').innerText = formatted;
             }
 
+            function filterPackages() {
+                const kategoriId = kategoriFilter.value;
+                document.querySelectorAll('.paket-select').forEach(select => {
+                    const options = select.querySelectorAll('option');
+                    options.forEach(option => {
+                        if (option.value === "") return;
+                        const pkgKategoriId = option.dataset.kategoriId;
+                        if (!kategoriId || pkgKategoriId == kategoriId) {
+                            option.style.display = 'block';
+                            option.disabled = false;
+                        } else {
+                            option.style.display = 'none';
+                            option.disabled = true;
+                        }
+                    });
+
+                    // Reset selected if now disabled
+                    const selectedOption = select.options[select.selectedIndex];
+                    if (selectedOption && selectedOption.disabled) {
+                        select.value = "";
+                        const row = select.closest('.item-row');
+                        updatePackageInfo(row);
+                    }
+                });
+                calculateTotal();
+            }
+
+            kategoriFilter.addEventListener('change', filterPackages);
+
+            // Event Delegation for all dynamics
             container.addEventListener('change', function(e) {
                 if (e.target.classList.contains('paket-select')) {
                     const row = e.target.closest('.item-row');
-                    updatePackageInfo(row);
+                    const selectedOption = e.target.options[e.target.selectedIndex];
+                    const katId = selectedOption?.dataset.kategoriId;
+
+                    // Auto-lock category if not set
+                    if (katId && !kategoriFilter.value) {
+                        kategoriFilter.value = katId;
+                        filterPackages(); // This will also handle calculations
+                    } else {
+                        updatePackageInfo(row);
+                        calculateTotal();
+                    }
+                }
+            });
+
+            container.addEventListener('input', function(e) {
+                if (e.target.classList.contains('jumlah-input')) {
+                    calculateTotal();
+                }
+            });
+
+            container.addEventListener('click', function(e) {
+                if (e.target.closest('.remove-item')) {
+                    e.target.closest('.item-row').remove();
                     calculateTotal();
                 }
             });
@@ -224,7 +283,8 @@
                         @foreach ($paketLayanan as $p)
                             <option value="{{ $p->id }}" data-price="{{ $p->harga_dasar }}"
                                 data-desc="{{ $p->deskripsi }}"
-                                data-fitur="{{ json_encode($p->fitur) }}">
+                                data-fitur="{{ json_encode($p->fitur) }}"
+                                data-kategori-id="{{ $p->layanan->kategori_id ?? '' }}">
                                 {{ $p->nama }} - Rp {{ number_format($p->harga_dasar, 0, ',', '.') }}
                             </option>
                         @endforeach
@@ -245,22 +305,40 @@
                 container.appendChild(div);
                 itemCount++;
 
-                // Add listeners to new inputs
-                div.querySelector('.paket-select').addEventListener('change', calculateTotal);
-                div.querySelector('.jumlah-input').addEventListener('input', calculateTotal);
-                div.querySelector('.remove-item').addEventListener('click', function() {
-                    div.remove();
-                    calculateTotal();
-                });
+                // Apply current filter to new dropdown
+                const kategoriId = kategoriFilter.value;
+                if (kategoriId) {
+                    const newSelect = div.querySelector('.paket-select');
+                    newSelect.querySelectorAll('option').forEach(option => {
+                        if (option.value === "") return;
+                        if (option.dataset.kategoriId != kategoriId) {
+                            option.style.display = 'none';
+                            option.disabled = true;
+                        }
+                    });
+                }
             });
 
-            container.addEventListener('change', function(e) {
-                if (e.target.classList.contains('paket-select')) calculateTotal();
-            });
-
-            container.addEventListener('input', function(e) {
-                if (e.target.classList.contains('jumlah-input')) calculateTotal();
-            });
+            // PRE-SELECT LOGIC
+            const selectedPaketId = "{{ $selectedPaketId ?? '' }}";
+            if (selectedPaketId) {
+                const select = document.querySelector('.paket-select');
+                if (select) {
+                    const option = select.querySelector(`option[value="${selectedPaketId}"]`);
+                    if (option) {
+                        const katId = option.dataset.kategoriId;
+                        if (katId) {
+                            kategoriFilter.value = katId;
+                            filterPackages();
+                        }
+                        select.value = selectedPaketId;
+                        updatePackageInfo(select.closest('.item-row'));
+                        calculateTotal();
+                    }
+                }
+            } else {
+                calculateTotal(); // Initial calc
+            }
         });
     </script>
 @endsection
