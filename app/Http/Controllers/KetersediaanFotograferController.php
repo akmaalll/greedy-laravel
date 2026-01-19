@@ -10,8 +10,31 @@ class KetersediaanFotograferController extends Controller
 {
     public function __construct(
         protected KetersediaanFotograferService $service,
-        protected \App\Services\UserService $userService
+        protected \App\Services\UserService $userService,
+        protected \App\Services\SchedulingService $schedulingService
     ) {}
+
+    /**
+     * Generate monthly availability schedule.
+     */
+    public function generateMonthly(Request $request)
+    {
+        try {
+            $year = $request->input('year', now()->year);
+            $month = $request->input('month', now()->month);
+            
+            // If photographer, only generate for themselves. If admin, balanced for all.
+            $fotograferId = auth()->user()->role_id == 4 ? auth()->id() : null;
+
+            $this->schedulingService->generateMonthlyAvailability($year, $month, $fotograferId);
+
+            return redirect()->route('ketersediaan.index')
+                ->with('success', 'Jadwal bulanan berhasil digenerate otomatis!');
+        } catch (\Exception $e) {
+            return redirect()->route('ketersediaan.index')
+                ->with('error', 'Gagal generate jadwal: ' . $e->getMessage());
+        }
+    }
 
     public function index()
     {

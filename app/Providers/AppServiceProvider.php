@@ -93,7 +93,7 @@ class AppServiceProvider extends ServiceProvider
         // Share template variables config
         config([
             'variables' => [
-                'templateName' => 'MorohenFilms',
+                'templateName' => 'MorphenFilms',
                 'templateVersion' => '1.0.0',
                 'templateFree' => false,
                 'templatePrefix' => '',
@@ -101,7 +101,7 @@ class AppServiceProvider extends ServiceProvider
                 'templateDomain' => 'localhost',
                 'templateAuthor' => 'Test',
                 'templateAuthorUrl' => '#',
-                'creatorName' => 'morohenfilms',
+                'creatorName' => 'MorphenFilms',
                 'creatorUrl' => '#',
                 'documentation' => 'https://demos.pixinvent.com/materialize-html-admin-template/documentation/',
             ],

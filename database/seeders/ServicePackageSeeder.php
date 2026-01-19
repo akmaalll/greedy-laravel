@@ -19,9 +19,6 @@ class ServicePackageSeeder extends Seeder
         $keluarga = DB::table('tbl_kategori')->where('slug', 'keluarga')->first();
         $acaraEvent = DB::table('tbl_kategori')->where('slug', 'acara-event')->first();
 
-        // ============================================
-        // 1. PERNIKAHAN
-        // ============================================
         // Pernikahan (MOROHENFILMS Special Offer)
         $pernikahanFoto = DB::table('tbl_layanan')->where('kategori_id', $pernikahan->id)->where('tipe', 'fotografi')->first();
 
@@ -83,9 +80,6 @@ class ServicePackageSeeder extends Seeder
             ]
         );
 
-        // ============================================
-        // 2. PREWEDDING
-        // ============================================
         $preweddingFoto = DB::table('tbl_layanan')->where('kategori_id', $prewedding->id)->where('tipe', 'fotografi')->first();
         $preweddingVideo = DB::table('tbl_layanan')->where('kategori_id', $prewedding->id)->where('tipe', 'videografi')->first();
 
@@ -99,9 +93,6 @@ class ServicePackageSeeder extends Seeder
         $this->createPackage($preweddingVideo->id, '3-4 Menit', 'menit', 4, 2500000);
         $this->createPackage($preweddingVideo->id, '4-6 Menit', 'menit', 6, 3500000);
 
-        // ============================================
-        // 3. POTRET
-        // ============================================
         $potretFoto = DB::table('tbl_layanan')->where('kategori_id', $potret->id)->where('tipe', 'fotografi')->first();
         $potretVideo = DB::table('tbl_layanan')->where('kategori_id', $potret->id)->where('tipe', 'videografi')->first();
 
@@ -115,9 +106,6 @@ class ServicePackageSeeder extends Seeder
         $this->createPackage($potretVideo->id, '2-3 Menit', 'menit', 3, 1200000);
         $this->createPackage($potretVideo->id, '3-4 Menit', 'menit', 4, 2000000);
 
-        // ============================================
-        // 4. KELUARGA
-        // ============================================
         $keluargaFoto = DB::table('tbl_layanan')->where('kategori_id', $keluarga->id)->where('tipe', 'fotografi')->first();
         $keluargaVideo = DB::table('tbl_layanan')->where('kategori_id', $keluarga->id)->where('tipe', 'videografi')->first();
 
@@ -131,9 +119,6 @@ class ServicePackageSeeder extends Seeder
         $this->createPackage($keluargaVideo->id, '2-3 Menit', 'menit', 3, 1400000);
         $this->createPackage($keluargaVideo->id, '3-4 Menit', 'menit', 4, 2300000);
 
-        // ============================================
-        // 5. ACARA / EVENT
-        // ============================================
         $acaraFoto = DB::table('tbl_layanan')->where('kategori_id', $acaraEvent->id)->where('tipe', 'fotografi')->first();
         $acaraVideo = DB::table('tbl_layanan')->where('kategori_id', $acaraEvent->id)->where('tipe', 'videografi')->first();
 
