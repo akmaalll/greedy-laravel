@@ -21,7 +21,7 @@
     </div>
 
     <div class="row">
-        <div class="col-md-8">
+        <div class="col-md-12">
             <div class="card mb-4">
                 <div class="card-header border-bottom">
                     <h5 class="mb-0">Rincian Transaksi</h5>
@@ -86,25 +86,6 @@
                             {{ $data->catatan ?: 'Tidak ada catatan.' }}
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card mb-4 text-center">
-                <div class="card-header border-bottom">
-                    <h5 class="mb-0">Bukti Pembayaran</h5>
-                </div>
-                <div class="card-body pt-4">
-                    @if($data->bukti_gambar)
-                        <img src="{{ $data->bukti_gambar }}" alt="Bukti Pembayaran" class="img-fluid rounded border mb-3">
-                        <a href="{{ $data->bukti_gambar }}" target="_blank" class="btn btn-sm btn-outline-primary">Lihat Ukuran Penuh</a>
-                    @else
-                        <div class="py-5 bg-light rounded border text-muted">
-                            <i class="ri-image-line ri-3x d-block mb-2"></i>
-                            Tidak ada bukti pembayaran diunggah.
-                        </div>
-                    @endif
                 </div>
             </div>
         </div>
