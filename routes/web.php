@@ -112,6 +112,7 @@ Route::middleware(['auth'])->group(function () {
     
     // Jadwal & Penugasan
     Route::resource('penugasan-fotografer', \App\Http\Controllers\PenugasanFotograferController::class)->middleware('check.permission:penugasan-fotografer.index');
+    Route::get('ketersediaan/existing-dates', [\App\Http\Controllers\KetersediaanFotograferController::class, 'getExistingDates'])->name('ketersediaan.existing-dates')->middleware('check.permission:ketersediaan.index');
     Route::post('ketersediaan/generate', [\App\Http\Controllers\KetersediaanFotograferController::class, 'generateMonthly'])->name('ketersediaan.generate')->middleware('check.permission:ketersediaan.index');
     Route::resource('ketersediaan', \App\Http\Controllers\KetersediaanFotograferController::class)->middleware('check.permission:ketersediaan.index');
 

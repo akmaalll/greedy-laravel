@@ -201,4 +201,69 @@ class SchedulingService
             throw $e;
         }
     }
+
+    /**
+     * Generate availability for date range.
+     * Creates records for ALL photographers on each day (not balanced).
+     */
+    public function generateRangeAvailability(string $startDate, string $endDate, ?int $fotograferId = null)
+    {
+        $start = Carbon::parse($startDate);
+        $end = Carbon::parse($endDate);
+
+        DB::beginTransaction();
+        try {
+            if ($fotograferId) {
+                // Generate for a specific photographer
+                $photographers = User::where('id', $fotograferId)->get();
+            } else {
+                // Generate for ALL photographers
+                $photographers = User::where('role_id', 4)->get();
+            }
+
+            if ($photographers->isEmpty()) {
+                throw new \Exception('Tidak ada fotografer ditemukan.');
+            }
+
+            $currentDate = $start->copy();
+            $createdCount = 0;
+
+            while ($currentDate <= $end) {
+                // Only generate for weekdays (Mon-Sat)
+                if ($currentDate->dayOfWeek !== Carbon::SUNDAY) {
+                    
+                    // Create for ALL photographers on this day
+                    foreach ($photographers as $photographer) {
+                        // Check if already exists to avoid duplicates
+                        $exists = KetersediaanFotografer::where('fotografer_id', $photographer->id)
+                            ->whereDate('tanggal', $currentDate->format('Y-m-d'))
+                            ->exists();
+
+                        if (! $exists) {
+                            KetersediaanFotografer::create([
+                                'fotografer_id' => $photographer->id,
+                                'tanggal' => $currentDate->format('Y-m-d'),
+                                'waktu_mulai' => self::WORKING_HOUR_START,
+                                'waktu_selesai' => self::WORKING_HOUR_END,
+                                'status' => 'tersedia',
+                                'catatan' => 'Otomatis dari sistem',
+                            ]);
+                            $createdCount++;
+                        }
+                    }
+                }
+                $currentDate->addDay();
+            }
+
+            DB::commit();
+
+            \Log::info("Generated $createdCount availability records from $startDate to $endDate");
+
+            return true;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error generating range availability: '.$e->getMessage());
+            throw $e;
+        }
+    }
 }

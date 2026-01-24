@@ -2,6 +2,14 @@
 
 @section('title', 'Ketersediaan Saya')
 
+@section('vendor-style')
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+@endsection
+
+@section('vendor-script')
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+@endsection
+
 @section('content')
     <div class="container-xxl flex-grow-1 container-p-y">
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -9,16 +17,40 @@
                 <span class="text-muted fw-light">Penjadwalan /</span> Ketersediaan Saya
             </h4>
             <div class="d-flex gap-2">
-                <form action="{{ route('ketersediaan.generate') }}" method="POST" class="d-inline">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-primary"
-                        onclick="return confirm('Generate jadwal otomatis untuk bulan ini?')">
-                        <i class="ri-calendar-event-line me-1"></i> Generate Bulanan
-                    </button>
-                </form>
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#generateModal">
+                    <i class="ri-calendar-event-line me-1"></i> Generate Bulanan
+                </button>
                 <a href="{{ route('ketersediaan.create') }}" class="btn btn-primary">
                     <i class="ri-add-line me-1"></i> Tambah Ketersediaan
                 </a>
+            </div>
+        </div>
+
+        <!-- Filter Card -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="GET" action="{{ route('ketersediaan.index') }}" id="filterForm">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Tanggal Dari</label>
+                            <input type="text" class="form-control" id="filterStartDate" name="start_date"
+                                placeholder="Pilih tanggal mulai" value="{{ request('start_date') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tanggal Sampai</label>
+                            <input type="text" class="form-control" id="filterEndDate" name="end_date"
+                                placeholder="Pilih tanggal akhir" value="{{ request('end_date') }}">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ri-filter-line me-1"></i> Filter
+                            </button>
+                            <a href="{{ route('ketersediaan.index') }}" class="btn btn-outline-secondary">
+                                <i class="ri-refresh-line me-1"></i> Reset
+                            </a>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
 
@@ -91,10 +123,10 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center py-5">
+                                <td colspan="7" class="text-center py-5">
                                     <div class="text-muted">
                                         <i class="ri-calendar-line ri-3x mb-2"></i>
-                                        <p>Anda belum mengisi jadwal ketersediaan.</p>
+                                        <p>Tidak ada jadwal ketersediaan.</p>
                                     </div>
                                 </td>
                             </tr>
@@ -104,4 +136,96 @@
             </div>
         </div>
     </div>
+
+    <!-- Generate Modal -->
+    <div class="modal fade" id="generateModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Generate Jadwal Bulanan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('ketersediaan.generate') }}" method="POST" id="generateForm">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="ri-information-line me-1"></i>
+                            Pilih rentang tanggal untuk generate jadwal. Tanggal yang sudah memiliki data tidak akan
+                            dibuat ulang.
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tanggal Dari <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="startDate" name="start_date"
+                                placeholder="Pilih tanggal mulai" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tanggal Sampai <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="endDate" name="end_date"
+                                placeholder="Pilih tanggal akhir" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="ri-calendar-event-line me-1"></i> Generate
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endsection
+
+@section('page-script')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Fetch existing dates from server
+            fetch('{{ route('ketersediaan.existing-dates') }}')
+                .then(response => response.json())
+                .then(existingDates => {
+                    // Initialize flatpickr for generate modal
+                    const startDatePicker = flatpickr("#startDate", {
+                        dateFormat: "Y-m-d",
+                        minDate: "today",
+                        disable: existingDates,
+                        onChange: function(selectedDates, dateStr, instance) {
+                            endDatePicker.set('minDate', dateStr);
+                        }
+                    });
+
+                    const endDatePicker = flatpickr("#endDate", {
+                        dateFormat: "Y-m-d",
+                        minDate: "today",
+                        disable: existingDates
+                    });
+
+                    // Initialize flatpickr for filter
+                    flatpickr("#filterStartDate", {
+                        dateFormat: "Y-m-d",
+                        onChange: function(selectedDates, dateStr, instance) {
+                            flatpickr("#filterEndDate", {
+                                dateFormat: "Y-m-d",
+                                minDate: dateStr
+                            });
+                        }
+                    });
+
+                    flatpickr("#filterEndDate", {
+                        dateFormat: "Y-m-d"
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching existing dates:', error);
+                    // Initialize without disable if fetch fails
+                    flatpickr("#startDate", {
+                        dateFormat: "Y-m-d",
+                        minDate: "today"
+                    });
+                    flatpickr("#endDate", {
+                        dateFormat: "Y-m-d",
+                        minDate: "today"
+                    });
+                });
+        });
+    </script>
 @endsection
