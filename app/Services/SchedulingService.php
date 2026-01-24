@@ -126,12 +126,20 @@ class SchedulingService
         $rating = number_format($selected->rating_diterima_avg_rating ?? 0, 1);
         $workload = $selected->penugasan_count;
 
-        return $this->penugasanRepository->create([
+        $assignment = $this->penugasanRepository->create([
             'pesanan_id' => $pesanan->id,
             'fotografer_id' => $selected->id,
             'status' => 'diterima',
             'catatan' => "Auto-assigned (Greedy). Variables: Rating: $rating, Workload Today: $workload tasks.",
         ]);
+
+        // Update ketersediaan status to 'dipesan' for visual feedback in the table
+        KetersediaanFotografer::where('fotografer_id', $selected->id)
+            ->whereDate('tanggal', $tanggalString)
+            ->where('status', 'tersedia')
+            ->update(['status' => 'dipesan']);
+
+        return $assignment;
     }
 
     /**
@@ -231,7 +239,7 @@ class SchedulingService
             while ($currentDate <= $end) {
                 // Only generate for weekdays (Mon-Sat)
                 if ($currentDate->dayOfWeek !== Carbon::SUNDAY) {
-                    
+
                     // Create for ALL photographers on this day
                     foreach ($photographers as $photographer) {
                         // Check if already exists to avoid duplicates

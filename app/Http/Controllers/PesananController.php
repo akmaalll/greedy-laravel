@@ -34,7 +34,7 @@ class PesananController extends Controller
                     return $item->layanan->kategori->nama ?? 'Z Lainnya';
                 });
         }
-        
+
         $categories = \App\Models\Kategori::where('is_aktif', true)->get();
 
         return view('pages.pesanan.index', compact('data', 'paketLayanan', 'categories'));
@@ -64,7 +64,22 @@ class PesananController extends Controller
     {
         $data = $request->validated();
 
-        // Check availability strictly before booking
+        // 1. Ambil paket pertama untuk hitung durasi (asumsi 1 pesanan 1 durasi paket utama)
+        $firstItem = $request->items[0] ?? null;
+        if ($firstItem) {
+            $paket = PaketLayanan::find($firstItem['paket_layanan_id']);
+            $mulai = \Carbon\Carbon::parse($data['tanggal_acara'].' '.$data['waktu_mulai_acara']);
+
+            if ($paket->tipe_durasi == 'jam') {
+                $selesai = $mulai->copy()->addHours($paket->nilai_durasi);
+            } else {
+                $selesai = $mulai->copy()->addMinutes($paket->nilai_durasi);
+            }
+
+            $data['waktu_selesai_acara'] = $selesai->format('H:i:s');
+        }
+
+        // 2. Check availability strictly before booking
         $isAvailable = $this->schedulingService->checkAvailability(
             $data['tanggal_acara'],
             $data['waktu_mulai_acara'],
@@ -133,9 +148,7 @@ class PesananController extends Controller
         $this->service->update($id, $data);
         $pesanan->refresh(); // Refresh to get updated status
 
-        // Greedy Assignment Trigger:
-        // 1. If status changed to 'dikonfirmasi'
-        // 2. OR if status is already 'dikonfirmasi' but has no photographer (Retry logic)
+        // 1. Trigger Greedy Assignment if status changed to 'dikonfirmasi'
         if ($pesanan->status == 'dikonfirmasi') {
             if ($pesanan->penugasanFotografer->isEmpty()) {
                 $assignment = $this->schedulingService->assignPhotographer($pesanan);
@@ -143,6 +156,29 @@ class PesananController extends Controller
                 if (! $assignment && $oldStatus != 'dikonfirmasi') {
                     return redirect()->back()
                         ->with('warning', 'Pesanan dikonfirmasi, namun tidak ada fotografer tersedia secara otomatis. Silakan tugaskan secara manual.');
+                }
+            }
+        }
+
+        // 2. REVERT availability if status changed to 'selesai' or 'dibatalkan'
+        if (in_array($pesanan->status, ['selesai', 'dibatalkan'])) {
+            $penugasan = $pesanan->penugasanFotografer->first();
+            if ($penugasan) {
+                $fotograferId = $penugasan->fotografer_id;
+                $tanggal = $pesanan->tanggal_acara;
+
+                // Check if this photographer has ANY OTHER active (not finished/cancelled) orders today
+                $otherActiveOrders = \App\Models\PenugasanFotografer::where('fotografer_id', $fotograferId)
+                    ->whereHas('pesanan', function ($q) use ($tanggal, $pesanan) {
+                        $q->where('tanggal_acara', $tanggal)
+                            ->whereIn('status', ['dikonfirmasi', 'berlangsung'])
+                            ->where('id', '!=', $pesanan->id);
+                    })->exists();
+
+                if (! $otherActiveOrders) {
+                    \App\Models\KetersediaanFotografer::where('fotografer_id', $fotograferId)
+                        ->whereDate('tanggal', $tanggal)
+                        ->update(['status' => 'tersedia']);
                 }
             }
         }
