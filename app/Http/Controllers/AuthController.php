@@ -85,6 +85,7 @@ class AuthController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'no_hp' => ['nullable', 'string', 'max:20'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'terms' => ['required', 'accepted'],
         ]);
@@ -92,6 +93,7 @@ class AuthController extends Controller
         $user = User::create([
             'name' => strtoupper($request->name),
             'email' => $request->email,
+            'no_hp' => $request->no_hp,
             'password' => \Hash::make($request->password),
             'role_id' => 3,
         ]);

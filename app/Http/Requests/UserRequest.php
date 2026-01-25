@@ -11,6 +11,7 @@ class UserRequest extends BaseRequest
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
+            'no_hp' => 'nullable|string|max:20',
             'role_id' => 'required|exists:roles,id',
         ];
 
@@ -21,7 +22,7 @@ class UserRequest extends BaseRequest
         } else {
             // On update, password is optional
             $rules['password'] = 'nullable|string|min:6|max:255';
-            $rules['email'] .= '|unique:users,email,' . $userId;
+            $rules['email'] .= '|unique:users,email,'.$userId;
         }
 
         return $rules;
@@ -34,6 +35,7 @@ class UserRequest extends BaseRequest
             'email.required' => 'Email wajib diisi',
             'email.email' => 'Format email tidak valid',
             'email.unique' => 'Email sudah digunakan',
+            'no_hp.max' => 'Nomor HP maksimal 20 karakter',
             'password.required' => 'Password wajib diisi',
             'password.min' => 'Password minimal 6 karakter',
             'role_id.required' => 'Role wajib dipilih',

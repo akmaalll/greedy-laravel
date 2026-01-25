@@ -3,16 +3,16 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Laravel\Sanctum\HasApiTokens;
-use App\Traits\LogsActivity;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, LogsActivity;
+    use HasApiTokens, HasFactory, LogsActivity, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -108,17 +108,22 @@ class User extends Authenticatable
         if (is_int($role)) {
             return $query->where('role_id', $role);
         }
-        return $query->whereHas('role', function($q) use ($role) {
+
+        return $query->whereHas('role', function ($q) use ($role) {
             $q->where('slug', $role);
         });
     }
 
     public function hasPermission($menuSlug, $action)
     {
-        if (!$this->role) return false;
+        if (! $this->role) {
+            return false;
+        }
 
         $menu = $this->role->menus()->where('menus.slug', $menuSlug)->first();
-        if (!$menu) return false;
+        if (! $menu) {
+            return false;
+        }
 
         return (bool) $menu->pivot->{"can_{$action}"};
     }

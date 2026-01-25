@@ -175,7 +175,7 @@
                         </div>
 
                         <div class="mb-4">
-                            <label class="small fw-bold text-muted mb-1 d-block">PEMBERI PESAN (KLIEN)</label>
+                            <label class="small fw-bold text-muted mb-1 d-block">Data Klien</label>
                             <div class="d-flex align-items-center">
                                 <div class="avatar avatar-sm me-2">
                                     <span
@@ -183,7 +183,18 @@
                                 </div>
                                 <div>
                                     <h6 class="mb-0 font-small">{{ $data->klien->name }}</h6>
-                                    <small class="text-muted">{{ $data->klien->email }}</small>
+                                    <small class="text-muted d-block">{{ $data->klien->email }}</small>
+                                    @if (auth()->user()->role_id != 3)
+                                        @if ($data->klien->no_hp)
+                                            <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', str_replace('08', '628', $data->klien->no_hp)) }}"
+                                                target="_blank" class="text-muted small">
+                                                <i
+                                                    class="ri-whatsapp-line me-1 text-success"></i>{{ $data->klien->no_hp }}
+                                            </a>
+                                        @else
+                                            <small class="text-muted">-</small>
+                                        @endif
+                                    @endif
                                 </div>
                             </div>
                         </div>

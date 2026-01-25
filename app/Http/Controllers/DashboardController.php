@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Pesanan;
-use App\Models\User;
 use App\Models\Pembayaran;
 use App\Models\PenugasanFotografer;
+use App\Models\Pesanan;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -20,6 +20,14 @@ class DashboardController extends Controller
         // dd($user);
         $role = $user->role_id;
 
+        // --- Trigger Auto-Update Status ---
+        // In a real app, this is done by Scheduler. For this project, we trigger it on Dashboard load for better UX.
+        try {
+            app(\App\Services\SchedulingService::class)->updateRealTimeStatus();
+        } catch (\Exception $e) {
+            // Ignore error so dashboard still loads
+            \Log::error('Auto-update status failed: '.$e->getMessage());
+        }
 
         if ($role === 2) {
             return $this->adminDashboard();
@@ -42,7 +50,7 @@ class DashboardController extends Controller
                 ->where('waktu_bayar', '>=', Carbon::now()->startOfYear())
                 ->select(DB::raw('MONTH(waktu_bayar) as month'), DB::raw('SUM(jumlah) as total'))
                 ->groupBy('month')
-                ->get()
+                ->get(),
         ];
 
         return view('pages.dashboard.admin', $data);
@@ -55,7 +63,7 @@ class DashboardController extends Controller
 
         $data = [
             'tasks_today' => PenugasanFotografer::where('fotografer_id', $user->id)
-                ->whereHas('pesanan', function($q) use ($today) {
+                ->whereHas('pesanan', function ($q) use ($today) {
                     $q->whereDate('tanggal_acara', $today);
                 })->count(),
             'completed_tasks' => PenugasanFotografer::where('fotografer_id', $user->id)
@@ -65,7 +73,7 @@ class DashboardController extends Controller
                 ->where('fotografer_id', $user->id)
                 ->latest()
                 ->take(5)
-                ->get()
+                ->get(),
         ];
 
         return view('pages.dashboard.photographer', $data);
@@ -88,7 +96,7 @@ class DashboardController extends Controller
             'recent_history' => Pesanan::where('klien_id', $user->id)
                 ->latest()
                 ->take(5)
-                ->get()
+                ->get(),
         ];
 
         return view('pages.dashboard.client', $data);

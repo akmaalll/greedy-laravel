@@ -34,10 +34,10 @@ class OrderTestSeeder extends Seeder
             DB::table('tbl_item_pesanan')->delete();
             DB::table('tbl_penugasan_fotografer')->delete();
             DB::table('tbl_pesanan')->delete();
+            DB::table('tbl_ketersediaan_fotografer')->delete(); // Reset availability to ensure sync
             DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
             // 1. Get roles
-            // Based on earlier check, IDs are 3 for client, 4 for photographer
             $clientRole = DB::table('roles')->where('slug', 'client')->first();
             $photographerRole = DB::table('roles')->where('slug', 'photographer')->first();
 
@@ -51,7 +51,7 @@ class OrderTestSeeder extends Seeder
             $clientRoleId = $clientRole->id;
             $photographerRoleId = $photographerRole->id;
 
-            // 2. Get existing clients (excluding client1 and client2)
+            // 2. Get existing clients
             $this->command->info('📝 Getting eligible clients...');
             $clients = User::where('role_id', $clientRoleId)
                 ->whereNotIn('email', ['client1@example.com', 'client2@example.com'])
@@ -79,11 +79,21 @@ class OrderTestSeeder extends Seeder
 
             $this->command->info("   Found {$photographers->count()} photographers.");
 
-            // 4. Create ratings for photographers
+            // 4. Generate Availability starting from NOW (Synchronized)
+            $startDate = Carbon::now(); // 2026-01-25
+            $endDate = Carbon::create(2026, 2, 28); // Limit to Feb 28 as requested
+
+            $this->command->info('📅 Generating photographer availability from '.$startDate->toDateString().' to '.$endDate->toDateString());
+
+            $scheduler = app(\App\Services\SchedulingService::class);
+            $scheduler->generateRangeAvailability($startDate->toDateString(), $endDate->toDateString());
+            $this->command->info('   Availability generated successfully.');
+
+            // 5. Create ratings for photographers
             $this->command->info('⭐ Creating photographer ratings...');
             $this->createPhotographerRatings($photographers, $clients);
 
-            // 5. Get available packages
+            // 6. Get available packages
             $packages = PaketLayanan::where('is_aktif', true)->get();
             if ($packages->isEmpty()) {
                 $packages = PaketLayanan::all();
@@ -96,9 +106,8 @@ class OrderTestSeeder extends Seeder
                 return;
             }
 
-            // 6. Define January 2026 dates (Only include dates that HAVE availability and are NOT Sundays)
-            $availableDates = KetersediaanFotografer::whereMonth('tanggal', 1)
-                ->whereYear('tanggal', 2026)
+            // 7. Get available dates (From NOW onwards)
+            $availableDates = KetersediaanFotografer::whereDate('tanggal', '>=', Carbon::now()->toDateString())
                 ->where('status', 'tersedia')
                 ->distinct()
                 ->pluck('tanggal')
@@ -106,7 +115,7 @@ class OrderTestSeeder extends Seeder
                 ->toArray();
 
             if (empty($availableDates)) {
-                $this->command->error('❌ No availability records found for January 2026! Please generate availability first.');
+                $this->command->error('❌ No availability records found even after generation!');
                 DB::rollBack();
 
                 return;
@@ -114,7 +123,7 @@ class OrderTestSeeder extends Seeder
 
             $this->command->info('   Found '.count($availableDates).' available dates for orders.');
 
-            // 7. Create 30 test orders
+            // 8. Create 30 test orders
             $this->command->info('📦 Creating 30 test orders with random packages for matching dates...');
             $this->createTestOrders($clients, $packages, $availableDates);
 
@@ -133,24 +142,48 @@ class OrderTestSeeder extends Seeder
     private function createPhotographerRatings($photographers, $clients)
     {
         $ratings = [5, 4, 3, 5, 4, 5]; // Random selection pool
+        $packages = PaketLayanan::all(); // Get packages for pricing
 
         foreach ($photographers as $photographer) {
             $ratingCount = rand(3, 6);
 
             for ($i = 0; $i < $ratingCount; $i++) {
                 $client = $clients->random();
+                $package = $packages->isNotEmpty() ? $packages->random() : null;
+                $price = $package ? $package->harga_dasar : 500000;
 
                 // Past event for rating purposes
                 $order = Pesanan::create([
-                    'nomor_pesanan' => 'PREV-'.Str::random(10),
+                    'nomor_pesanan' => 'ORD-'.Str::random(10),
                     'klien_id' => $client->id,
                     'tanggal_acara' => Carbon::now()->subMonths(rand(1, 12)),
                     'waktu_mulai_acara' => '09:00:00',
                     'waktu_selesai_acara' => '11:00:00',
                     'lokasi_acara' => 'Previous Location',
                     'status' => 'selesai',
-                    'subtotal' => 0,
-                    'total_harga' => 0,
+                    'subtotal' => $price,
+                    'total_harga' => $price,
+                ]);
+
+                // Create Item link
+                if ($package) {
+                    ItemPesanan::create([
+                        'pesanan_id' => $order->id,
+                        'paket_layanan_id' => $package->id,
+                        'jumlah' => 1,
+                        'harga_satuan' => $price,
+                        'subtotal' => $price,
+                    ]);
+                }
+
+                // Create Assignment link (Important for "History")
+                \App\Models\PenugasanFotografer::create([
+                    'pesanan_id' => $order->id,
+                    'fotografer_id' => $photographer->id,
+                    'status' => 'selesai',
+                    'waktu_ditugaskan' => $order->created_at,
+                    'waktu_diterima' => $order->created_at,
+                    'waktu_selesai' => $order->tanggal_acara,
                 ]);
 
                 RatingFotografer::create([
@@ -183,14 +216,17 @@ class OrderTestSeeder extends Seeder
             ['13:00:00', '15:00:00'], ['15:00:00', '17:00:00'],
         ];
 
+        $scheduler = app(\App\Services\SchedulingService::class);
+
         for ($i = 1; $i <= 30; $i++) {
             $client = $clients->random();
             $date = $availableDates[array_rand($availableDates)];
             $timeSlot = $times[array_rand($times)];
             $package = $packages->random();
+            $status = $orderStatuses[array_rand($orderStatuses)];
 
             // Calculate end time based on package duration
-            $startTime = Carbon::parse($date . ' ' . $timeSlot[0]);
+            $startTime = Carbon::parse($date.' '.$timeSlot[0]);
             if ($package->tipe_durasi == 'jam') {
                 $endTime = $startTime->copy()->addHours($package->nilai_durasi);
             } else {
@@ -198,17 +234,17 @@ class OrderTestSeeder extends Seeder
             }
 
             $order = Pesanan::create([
-                'nomor_pesanan' => 'TEST-'.str_pad($i, 5, '0', STR_PAD_LEFT),
+                'nomor_pesanan' => 'ORD-'.str_pad($i, 5, '0', STR_PAD_LEFT),
                 'klien_id' => $client->id,
                 'tanggal_acara' => $date,
                 'waktu_mulai_acara' => $timeSlot[0],
                 'waktu_selesai_acara' => $endTime->format('H:i:s'),
                 'lokasi_acara' => $locations[array_rand($locations)],
                 'deskripsi_acara' => 'Test event photoshoot #'.$i,
-                'status' => $orderStatuses[array_rand($orderStatuses)],
+                'status' => $status,
                 'subtotal' => $package->harga_dasar,
                 'total_harga' => $package->harga_dasar,
-                'catatan' => 'Greedy algorithm test case with '.$package->nama . ' (' . $package->nilai_durasi . ' ' . $package->tipe_durasi . ')',
+                'catatan' => 'Greedy algorithm test case',
             ]);
 
             ItemPesanan::create([
@@ -218,6 +254,15 @@ class OrderTestSeeder extends Seeder
                 'harga_satuan' => $package->harga_dasar,
                 'subtotal' => $package->harga_dasar,
             ]);
+
+            // If status is confirmed, try to assign photographer immediately
+            if ($status == 'dikonfirmasi') {
+                try {
+                    $scheduler->assignPhotographer($order);
+                } catch (\Exception $e) {
+                    $this->command->warn("Could not assign photographer for Order #{$i}: ".$e->getMessage());
+                }
+            }
         }
     }
 }

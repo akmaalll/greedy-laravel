@@ -186,33 +186,30 @@ class SchedulingService
             $photographerIndex = 0;
 
             while ($currentDate <= $endDate) {
-                // Only generate for weekdays (Mon-Sat)
-                if ($currentDate->dayOfWeek !== Carbon::SUNDAY) {
+                // Generate for everyday including Sunday
+                // If specific photographer, just add for them
+                // If balanced, pick one photographer for this day
+                $selectedPhotographer = $fotograferId ? $photographers->first() : $photographers[$photographerIndex % $photographers->count()];
 
-                    // If specific photographer, just add for them
-                    // If balanced, pick one photographer for this day
-                    $selectedPhotographer = $fotograferId ? $photographers->first() : $photographers[$photographerIndex % $photographers->count()];
+                // Check if already exists to avoid duplicates
+                $exists = KetersediaanFotografer::where('fotografer_id', $selectedPhotographer->id)
+                    ->whereDate('tanggal', $currentDate->format('Y-m-d'))
+                    ->exists();
 
-                    // Check if already exists to avoid duplicates
-                    $exists = KetersediaanFotografer::where('fotografer_id', $selectedPhotographer->id)
-                        ->whereDate('tanggal', $currentDate->format('Y-m-d'))
-                        ->exists();
+                if (! $exists) {
+                    KetersediaanFotografer::create([
+                        'fotografer_id' => $selectedPhotographer->id,
+                        'tanggal' => $currentDate->format('Y-m-d'),
+                        'waktu_mulai' => self::WORKING_HOUR_START,
+                        'waktu_selesai' => self::WORKING_HOUR_END,
+                        'status' => 'tersedia',
+                        'catatan' => 'Otomatis dari sistem',
+                    ]);
+                }
 
-                    if (! $exists) {
-                        KetersediaanFotografer::create([
-                            'fotografer_id' => $selectedPhotographer->id,
-                            'tanggal' => $currentDate->format('Y-m-d'),
-                            'waktu_mulai' => self::WORKING_HOUR_START,
-                            'waktu_selesai' => self::WORKING_HOUR_END,
-                            'status' => 'tersedia',
-                            'catatan' => 'Otomatis dari sistem',
-                        ]);
-                    }
-
-                    // Increment index only if we are balancing
-                    if (! $fotograferId) {
-                        $photographerIndex++;
-                    }
+                // Increment index only if we are balancing
+                if (! $fotograferId) {
+                    $photographerIndex++;
                 }
                 $currentDate->addDay();
             }
@@ -254,27 +251,24 @@ class SchedulingService
             $createdCount = 0;
 
             while ($currentDate <= $end) {
-                // Only generate for weekdays (Mon-Sat)
-                if ($currentDate->dayOfWeek !== Carbon::SUNDAY) {
+                // Generate for everyday including Sunday
+                // Create for ALL photographers on this day
+                foreach ($photographers as $photographer) {
+                    // Check if already exists to avoid duplicates
+                    $exists = KetersediaanFotografer::where('fotografer_id', $photographer->id)
+                        ->whereDate('tanggal', $currentDate->format('Y-m-d'))
+                        ->exists();
 
-                    // Create for ALL photographers on this day
-                    foreach ($photographers as $photographer) {
-                        // Check if already exists to avoid duplicates
-                        $exists = KetersediaanFotografer::where('fotografer_id', $photographer->id)
-                            ->whereDate('tanggal', $currentDate->format('Y-m-d'))
-                            ->exists();
-
-                        if (! $exists) {
-                            KetersediaanFotografer::create([
-                                'fotografer_id' => $photographer->id,
-                                'tanggal' => $currentDate->format('Y-m-d'),
-                                'waktu_mulai' => self::WORKING_HOUR_START,
-                                'waktu_selesai' => self::WORKING_HOUR_END,
-                                'status' => 'tersedia',
-                                'catatan' => 'Otomatis dari sistem',
-                            ]);
-                            $createdCount++;
-                        }
+                    if (! $exists) {
+                        KetersediaanFotografer::create([
+                            'fotografer_id' => $photographer->id,
+                            'tanggal' => $currentDate->format('Y-m-d'),
+                            'waktu_mulai' => self::WORKING_HOUR_START,
+                            'waktu_selesai' => self::WORKING_HOUR_END,
+                            'status' => 'tersedia',
+                            'catatan' => 'Otomatis dari sistem',
+                        ]);
+                        $createdCount++;
                     }
                 }
                 $currentDate->addDay();
@@ -290,5 +284,99 @@ class SchedulingService
             \Log::error('Error generating range availability: '.$e->getMessage());
             throw $e;
         }
+    }
+
+    /**
+     * Update real-time status of orders and photographer availability.
+     * This should be called by scheduler or manually.
+     */
+    public function updateRealTimeStatus()
+    {
+        $now = Carbon::now();
+        $today = $now->toDateString();
+        $currentTime = $now->toTimeString();
+        $logs = [];
+
+        // 0. AUTO-START Orders (Dikonfirmasi -> Berlangsung)
+        // If start time has passed but end time hasn't, mark as ongoing.
+        $startingOrders = Pesanan::where('status', 'dikonfirmasi')
+            ->whereDate('tanggal_acara', $today)
+            ->whereTime('waktu_mulai_acara', '<=', $currentTime)
+            ->whereTime('waktu_selesai_acara', '>', $currentTime)
+            ->get();
+
+        foreach ($startingOrders as $order) {
+            $order->update(['status' => 'berlangsung']);
+            $logs[] = "🚀 Order #{$order->nomor_pesanan} marked as BERLANGSUNG (Started).";
+        }
+
+        // 1. AUTO-COMPLETE Finished Orders (Dikonfirmasi/Berlangsung -> Selesai)
+        $finishedOrders = Pesanan::whereIn('status', ['dikonfirmasi', 'berlangsung'])
+            ->whereDate('tanggal_acara', $today)
+            ->whereTime('waktu_selesai_acara', '<=', $currentTime) // Changed to <= to be precise
+            ->get();
+
+        foreach ($finishedOrders as $order) {
+            DB::transaction(function () use ($order, &$logs) {
+                // Update Order Status
+                $order->update(['status' => 'selesai']);
+                $logs[] = "✅ Order #{$order->nomor_pesanan} marked as SELESAI (Time finished).";
+
+                // Update Assignment Status
+                foreach ($order->penugasanFotografer as $tugas) {
+                    $tugas->update([
+                        'status' => 'selesai',
+                        'waktu_selesai' => Carbon::now() // Record actual finish time
+                    ]);
+                    $logs[] = "   -> Photographer Assignment for {$tugas->fotografer->name} marked as SELESAI.";
+                }
+            });
+        }
+
+        // 2. Update Availability based on Real-Time Status
+        $photographers = User::where('role_id', 4)->get();
+
+        foreach ($photographers as $p) {
+            // Get availability for today
+            $avail = KetersediaanFotografer::where('fotografer_id', $p->id)
+                ->whereDate('tanggal', $today)
+                ->first();
+
+            if (!$avail) {
+                continue;
+            }
+
+            // Skip if manually set to 'tidak_tersedia' (Closed/Off)
+            if ($avail->status == 'tidak_tersedia') {
+                continue;
+            }
+
+            // Check if currently busy (Active Order running NOW)
+            // Active means: 'dikonfirmasi' or 'berlangsung', AND time is within range
+            $isBusy = \App\Models\PenugasanFotografer::where('fotografer_id', $p->id)
+                ->whereHas('pesanan', function ($q) use ($today, $currentTime) {
+                    $q->whereDate('tanggal_acara', $today)
+                        ->whereTime('waktu_mulai_acara', '<=', $currentTime)
+                        ->whereTime('waktu_selesai_acara', '>', $currentTime) // Strict check: ongoing only
+                        ->whereIn('status', ['dikonfirmasi', 'berlangsung']);
+                })
+                ->whereNotIn('status', ['selesai', 'ditolak', 'dibatalkan']) // Double check assignment status
+                ->exists();
+
+            if ($isBusy) {
+                if ($avail->status !== 'dipesan') {
+                    $avail->update(['status' => 'dipesan']);
+                    $logs[] = "LOG: Photographer {$p->name} is BUSY. Status updated to 'dipesan'.";
+                }
+            } else {
+                // If not busy now, mark as available
+                if ($avail->status !== 'tersedia') {
+                    $avail->update(['status' => 'tersedia']);
+                    $logs[] = "LOG: Photographer {$p->name} is FREE. Status updated to 'tersedia'.";
+                }
+            }
+        }
+
+        return $logs;
     }
 }

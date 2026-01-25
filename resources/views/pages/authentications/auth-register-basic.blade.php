@@ -67,6 +67,11 @@
                                     placeholder="Enter your email" value="{{ old('email') }}">
                                 <label for="email">Email</label>
                             </div>
+                            <div class="form-floating form-floating-outline mb-5">
+                                <input type="text" class="form-control" id="no_hp" name="no_hp"
+                                    placeholder="08123456789" value="{{ old('no_hp') }}">
+                                <label for="no_hp">No HP (Opsional)</label>
+                            </div>
                             <div class="mb-5 form-password-toggle">
                                 <div class="input-group input-group-merge">
                                     <div class="form-floating form-floating-outline">
