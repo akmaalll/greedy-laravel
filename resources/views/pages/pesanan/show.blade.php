@@ -279,3 +279,71 @@
         </div>
     </div>
 @endsection
+@section('page-script')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            @if (session('greedy_calculation'))
+                @php
+                    $calc = session('greedy_calculation');
+                    $rows = '';
+                    foreach ($calc['candidates'] as $c) {
+                        $is_selected = $c['name'] == $calc['selected'] ? 'table-primary font-weight-bold' : '';
+                        $star = $c['name'] == $calc['selected'] ? '⭐' : '';
+                        $rows .= "<tr class='{$is_selected}'>
+                                <td>{$star} {$c['name']}</td>
+                                <td>{$c['rating']}</td>
+                                <td>{$c['workload']}</td>
+                                <td class='text-center'><b>{$c['score']}</b></td>
+                            </tr>";
+                    }
+                @endphp
+
+                window.AlertHandler.swal.fire({
+                    title: '<strong>Analisis Algoritma Greedy</strong>',
+                    icon: 'info',
+                    width: '600px',
+                    html: `
+                        <div class="text-start mb-3">
+                            <p class="small text-muted mb-2">Sistem menentukan pilihan terbaik menggunakan fungsi heuristik (Scoring) untuk mencapai optimasi lokal.</p>
+                            
+                            <div class="p-2 mb-3 bg-light rounded border">
+                                <small><b>Rumus Perhitungan:</b></small><br>
+                                <code class="text-primary">Skor = (Rating) - (Beban Kerja * 2)</code>
+                                <p class="mb-0" style="font-size: 0.75rem">* Pengali 2 digunakan untuk memberikan penalti lebih besar pada fotografer yang sudah banyak tugas.</p>
+                            </div>
+
+                            <table class="table table-sm table-bordered mt-2" style="font-size: 0.85rem">
+                                <thead class="bg-label-dark">
+                                    <tr>
+                                        <th>Fotografer</th>
+                                        <th>Rating</th>
+                                        <th>Beban</th>
+                                        <th class="text-center">Skor Akhir</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {!! $rows !!}
+                                </tbody>
+                            </table>
+                            
+                            <div class="mt-3 p-3 bg-label-success rounded border border-success">
+                                <div class="d-flex align-items-center">
+                                    <i class="ri-checkbox-circle-fill ri-24px me-2 text-success"></i>
+                                    <div>
+                                        <strong>Hasil Keputusan:</strong><br>
+                                        Fotografer <b>{{ $calc['selected'] }}</b> terpilih karena memiliki <b>Skor Akhir Tertinggi</b> di antara kandidat tersedia lainnya.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `,
+                    showCloseButton: true,
+                    confirmButtonText: 'Tutup Analisis',
+                    customClass: {
+                        confirmButton: 'btn btn-primary shadow-none',
+                    }
+                });
+            @endif
+        });
+    </script>
+@endsection

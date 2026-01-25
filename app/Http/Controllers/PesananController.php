@@ -151,9 +151,16 @@ class PesananController extends Controller
         // 1. Trigger Greedy Assignment if status changed to 'dikonfirmasi'
         if ($pesanan->status == 'dikonfirmasi') {
             if ($pesanan->penugasanFotografer->isEmpty()) {
-                $assignment = $this->schedulingService->assignPhotographer($pesanan);
+                $result = $this->schedulingService->assignPhotographer($pesanan);
 
-                if (! $assignment && $oldStatus != 'dikonfirmasi') {
+                if ($result) {
+                    session()->flash('greedy_calculation', [
+                        'selected' => $result['selected_photographer'],
+                        'candidates' => $result['candidates'],
+                    ]);
+                }
+
+                if (! $result && $oldStatus != 'dikonfirmasi') {
                     return redirect()->back()
                         ->with('warning', 'Pesanan dikonfirmasi, namun tidak ada fotografer tersedia secara otomatis. Silakan tugaskan secara manual.');
                 }

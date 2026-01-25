@@ -139,7 +139,24 @@ class SchedulingService
             ->where('status', 'tersedia')
             ->update(['status' => 'dipesan']);
 
-        return $assignment;
+        return [
+            'assignment' => $assignment,
+            'selected_photographer' => $selected->name,
+            'candidates' => $availablePhotographers->map(function ($p) {
+                $rating = $p->rating_diterima_avg_rating ?? 0;
+                $workload = $p->penugasan_count;
+                // Formula: Rating - (Workload * 2). 
+                // Kita kalikan beban dengan 2 agar beban kerja memiliki pengaruh signifikan.
+                $score = number_format($rating - ($workload * 2), 2);
+                
+                return [
+                    'name' => $p->name,
+                    'rating' => number_format($rating, 1),
+                    'workload' => $workload,
+                    'score' => $score,
+                ];
+            })->sortByDesc('score')->values()->toArray(),
+        ];
     }
 
     /**
