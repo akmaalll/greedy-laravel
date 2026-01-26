@@ -245,12 +245,20 @@
                                             <i class="ri-star-smile-line me-1"></i> Beri Rating Layanan
                                         </a>
                                     @endif
-
                                     @if ($data->penugasanFotografer->isNotEmpty())
-                                        <a href="{{ route('rating-fotografer.create', ['pesanan_id' => $data->id]) }}"
-                                            class="btn btn-outline-warning">
-                                            <i class="ri-user-star-line me-1"></i> Beri Rating Fotografer
-                                        </a>
+                                        @php
+                                            $firstAssignment = $data->penugasanFotografer->first();
+                                            $hasRated = $data->ratingFotografer
+                                                ->where('fotografer_id', $firstAssignment->fotografer_id)
+                                                ->isNotEmpty();
+                                        @endphp
+
+                                        @if (!$hasRated)
+                                            <a href="{{ route('rating-fotografer.create', ['pesanan_id' => $data->id]) }}"
+                                                class="btn btn-outline-warning">
+                                                <i class="ri-user-star-line me-1"></i> Beri Rating Fotografer
+                                            </a>
+                                        @endif
                                     @endif
                                 </div>
                             </div>

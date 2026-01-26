@@ -42,8 +42,8 @@
                     <!-- /Logo -->
 
                     <div class="card-body mt-1">
-                        <h4 class="mb-1">Adventure starts here 🚀</h4>
-                        <p class="mb-5">Make your app management easy and fun!</p>
+                        <h4 class="mb-1">Register</h4>
+                        <p class="mb-5">Buat akun baru!</p>
 
                         @if ($errors->any())
                             <div class="alert alert-danger">
@@ -96,28 +96,19 @@
                                 </div>
                             </div>
 
-                            <div class="mb-5">
-                                <div class="form-check mt-2">
-                                    <input class="form-check-input" type="checkbox" id="terms-conditions" name="terms">
-                                    <label class="form-check-label" for="terms-conditions">
-                                        I agree to
-                                        <a href="javascript:void(0);">privacy policy & terms</a>
-                                    </label>
-                                </div>
-                            </div>
                             <button class="btn btn-primary d-grid w-100">
-                                Sign up
+                                Registter
                             </button>
                         </form>
 
                         <p class="text-center">
-                            <span>Already have an account?</span>
+                            <span>Sudah punya akun?</span>
                             <a href="{{ url('login') }}">
-                                <span>Sign in instead</span>
+                                <span>Login</span>
                             </a>
                         </p>
 
-                        <div class="divider my-5">
+                        {{-- <div class="divider my-5">
                             <div class="divider-text">or</div>
                         </div>
 
@@ -137,7 +128,7 @@
                             <a href="javascript:;" class="btn btn-icon rounded-circle btn-text-google-plus">
                                 <i class="tf-icons ri-google-fill"></i>
                             </a>
-                        </div>
+                        </div> --}}
                     </div>
                 </div>
                 <!-- Register Card -->

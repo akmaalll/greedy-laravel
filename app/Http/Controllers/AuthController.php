@@ -39,10 +39,6 @@ class AuthController extends Controller
             return back()->withErrors(['email' => 'Akun belum punya role']);
         }
 
-        // ================================
-        // BAGIAN KRITIS UNTUK CPANEL
-        // ================================
-
         Auth::loginUsingId($user->id, $request->filled('remember'));
 
         // paksa tulis session
@@ -86,8 +82,7 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'no_hp' => ['nullable', 'string', 'max:20'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'terms' => ['required', 'accepted'],
+            'password' => ['required', 'string', 'min:8', 'confirmed']
         ]);
 
         $user = User::create([
