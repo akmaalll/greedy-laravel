@@ -80,12 +80,12 @@
                         <span class="h4 text-primary mb-0">Rp {{ number_format($data->jumlah, 0, ',', '.') }}</span>
                     </div>
 
-                    <div class="mt-3">
+                    {{-- <div class="mt-3">
                         <h6 class="text-muted mb-2">Catatan:</h6>
                         <div class="p-3 bg-light rounded italic">
                             {{ $data->catatan ?: 'Tidak ada catatan.' }}
                         </div>
-                    </div>
+                    </div> --}}
                 </div>
             </div>
         </div>

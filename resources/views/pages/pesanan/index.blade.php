@@ -10,9 +10,23 @@
     @vite(['resources/assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js'])
 @endsection
 
+@if (!auth()->check())
+    <style>
+        @media (max-width: 575px) {
+
+            .layout-menu-toggle,
+            .navbar-nav-right,
+            .dropdown-user,
+            .dropdown-menu.dropdown-menu-end.show {
+                display: none !important;
+            }
+        }
+    </style>
+@endif
+
 @section('content')
     <div class="container-xxl flex-grow-1 container-p-y">
-        @if (auth()->user()->role->slug == 'client')
+        @if (auth()->check() && auth()->user()->role->slug == 'client')
             {{-- CLIENT VIEW --}}
             <div class="row mb-6">
                 <div class="col-12">
@@ -31,81 +45,135 @@
                 </div>
             </div>
 
-            <!-- Katalog Pesanan (Header & Filters) -->
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
-                <h4 class="fw-bold mb-0">Pilih Layanan Kami</h4>
+            <!-- End Greeting -->
+        @endif
 
-                <div class="btn-group" role="group" aria-label="Filter Kategori">
-                    <button type="button" class="btn btn-primary active filter-btn" data-filter="all">Semua</button>
-                    @foreach ($categories as $cat)
-                        <button type="button" class="btn btn-outline-primary filter-btn" data-filter="{{ $cat->id }}">
-                            {{ $cat->nama }}
-                        </button>
-                    @endforeach
-                </div>
+        <!-- Katalog Pesanan (Header & Filters) -->
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
+            <h4 class="fw-bold mb-0">Pilih Layanan Kami</h4>
+
+            <div class="btn-group" role="group" aria-label="Filter Kategori">
+                <button type="button" class="btn btn-primary active filter-btn" data-filter="all">Semua</button>
+                @foreach ($categories as $cat)
+                    <button type="button" class="btn btn-outline-primary filter-btn" data-filter="{{ $cat->id }}">
+                        {{ $cat->nama }}
+                    </button>
+                @endforeach
             </div>
+        </div>
 
-            <!-- Service Catalog -->
-            <div class="row mb-6" id="catalog-container">
-                @foreach ($paketLayanan as $paket)
-                    <div class="col-md-6 col-lg-3 mb-4 package-item" data-category-id="{{ $paket->layanan->kategori_id }}">
-                        <div class="card h-100 shadow-none border">
-                            <div class="card-body p-5 text-center">
-                                <div class="avatar avatar-xl bg-label-primary mx-auto mb-4">
+        <!-- Service Catalog -->
+        <div class="row mb-6" id="catalog-container">
+            @foreach ($paketLayanan as $paket)
+                <div class="col-md-6 col-lg-3 mb-4 package-item" data-category-id="{{ $paket->layanan->kategori_id }}">
+                    <div class="card h-100 shadow-none border">
+                        <div class="card-body p-5 text-center">
+                            {{-- <div class="avatar avatar-xl bg-label-primary mx-auto mb-4">
                                     <span class="avatar-initial rounded-3"><i class="ri-camera-fill ri-32px"></i></span>
-                                </div>
-                                <div class="mb-3">
-                                    <span class="badge bg-label-info">{{ $paket->layanan->kategori->nama ?? 'Umum' }}</span>
-                                </div>
-                                <h5 class="card-title fw-bold mb-2">{{ $paket->nama }}</h5>
-                                <p class="card-text text-muted small mb-4 text-truncate-2">
-                                    {{ Str::limit($paket->deskripsi, 80) }}</p>
-                                <div class="h4 text-primary fw-bold mb-4">
-                                    Rp {{ number_format($paket->harga_dasar, 0, ',', '.') }}
-                                </div>
+                                </div> --}}
+                            <div class="mb-3">
+                                <span class="badge bg-label-info">{{ $paket->layanan->kategori->nama ?? 'Umum' }}</span>
+                            </div>
+                            <h5 class="card-title fw-bold mb-2">{{ $paket->nama }}</h5>
+                            <p class="card-text text-muted small mb-4 text-truncate-2">
+                                {{ Str::limit(is_array($paket->deskripsi) ? implode(', ', $paket->deskripsi) : $paket->deskripsi ?? '', 80) }}
+                            </p>
+                            <div class="h4 text-primary fw-bold mb-4">
+                                Rp {{ number_format($paket->harga_dasar, 0, ',', '.') }}
+                            </div>
+                            @if (auth()->check())
                                 <a href="{{ route('pesanan.create', ['selected_paket' => $paket->id]) }}"
-                                    class="btn btn-primary w-100">
-                                    Pesan Sekarang
-                                </a>
+                                    class="btn btn-primary w-100">Pesan Sekarang</a>
+                            @else
+                                <a href="{{ route('login', ['selected_paket' => $paket->id]) }}"
+                                    class="btn btn-primary w-100 guest-pesan">Pesan Sekarang</a>
+                            @endif
+
+                            <div class="mt-3 text-start small text-muted paket-detail-list">
+                                @if (is_array($paket->deskripsi))
+                                    <div class="mb-1"><strong>Deskripsi:</strong>
+                                        <ul class="mb-1">
+                                            @foreach ($paket->deskripsi as $d)
+                                                <li>{{ $d }}</li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                @else
+                                    <p class="mb-1"><strong>Deskripsi:</strong> {{ $paket->deskripsi ?? '-' }}</p>
+                                @endif
+
+                                @if (isset($paket->durasi) && $paket->durasi)
+                                    @if (is_array($paket->durasi))
+                                        <div class="mb-1"><strong>Durasi:</strong>
+                                            <ul class="mb-1">
+                                                @foreach ($paket->durasi as $d)
+                                                    <li>{{ $d }}</li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                    @else
+                                        <p class="mb-1"><strong>Durasi:</strong> {{ $paket->durasi }}</p>
+                                    @endif
+                                @endif
+
+                                @if (isset($paket->fitur) && $paket->fitur)
+                                    @if (is_array($paket->fitur))
+                                        <div class="mb-1"><strong>Termasuk:</strong>
+                                            <ul class="mb-1">
+                                                @foreach ($paket->fitur as $f)
+                                                    <li>{{ $f }}</li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                    @else
+                                        <p class="mb-1"><strong>Termasuk:</strong> {{ $paket->fitur }}</p>
+                                    @endif
+                                @endif
+
+                                @if ($paket->layanan)
+                                    <p class="mb-0"><strong>Layanan:</strong> {{ $paket->layanan->nama ?? '-' }}</p>
+                                @endif
                             </div>
                         </div>
                     </div>
-                @endforeach
-            </div>
+                </div>
+            @endforeach
+        </div>
 
-            <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    const buttons = document.querySelectorAll('.filter-btn');
-                    const items = document.querySelectorAll('.package-item');
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const buttons = document.querySelectorAll('.filter-btn');
+                const items = document.querySelectorAll('.package-item');
 
-                    buttons.forEach(btn => {
-                        btn.addEventListener('click', function() {
-                            // Activate button
-                            buttons.forEach(b => {
-                                b.classList.remove('btn-primary', 'active');
-                                b.classList.add('btn-outline-primary');
-                            });
-                            this.classList.remove('btn-outline-primary');
-                            this.classList.add('btn-primary', 'active');
+                buttons.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        // Activate button
+                        buttons.forEach(b => {
+                            b.classList.remove('btn-primary', 'active');
+                            b.classList.add('btn-outline-primary');
+                        });
+                        this.classList.remove('btn-outline-primary');
+                        this.classList.add('btn-primary', 'active');
 
-                            const filter = this.getAttribute('data-filter');
+                        const filter = this.getAttribute('data-filter');
 
-                            // Filter items
-                            items.forEach(item => {
-                                if (filter === 'all' || item.getAttribute('data-category-id') ==
-                                    filter) {
-                                    item.style.display = 'block';
-                                    item.classList.add('animate__animated', 'animate__fadeIn');
-                                } else {
-                                    item.style.display = 'none';
-                                    item.classList.remove('animate__animated', 'animate__fadeIn');
-                                }
-                            });
+                        // Filter items
+                        items.forEach(item => {
+                            if (filter === 'all' || item.getAttribute('data-category-id') ==
+                                filter) {
+                                item.style.display = 'block';
+                                item.classList.add('animate__animated', 'animate__fadeIn');
+                            } else {
+                                item.style.display = 'none';
+                                item.classList.remove('animate__animated', 'animate__fadeIn');
+                            }
                         });
                     });
                 });
-            </script>
+            });
+        </script>
 
+        @if (auth()->check() && auth()->user()->role->slug == 'client')
             <!-- History Orders Section -->
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center border-bottom">
@@ -180,13 +248,13 @@
                     </table>
                 </div>
             </div>
-        @else
+        @elseif(auth()->check())
             {{-- ADMIN & PHOTOGRAPHER VIEW (Original Table) --}}
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4 class="fw-bold mb-0">
                     <span class="text-muted fw-light">Transaksi /</span> Daftar Pesanan
                 </h4>
-                @if (auth()->user()->role->slug == 'admin')
+                @if (auth()->check() && auth()->user()->role->slug == 'admin')
                     <a href="{{ route('pesanan.create') }}" class="btn btn-primary">
                         <i class="ri-add-line me-1"></i> Buat Pesanan
                     </a>
@@ -253,13 +321,14 @@
                                                 class="btn btn-sm btn-outline-info" title="Detail">
                                                 <i class="ri-eye-line"></i>
                                             </a>
-                                            @if (auth()->user()->role->slug == 'admin')
+                                            @if (auth()->check() && auth()->user()->role->slug == 'admin')
                                                 <a href="{{ route('pesanan.edit', $item->id) }}"
                                                     class="btn btn-sm btn-outline-primary" title="Edit">
                                                     <i class="ri-pencil-line"></i>
                                                 </a>
                                                 <button type="button" class="btn btn-sm btn-outline-danger delete-record"
-                                                    data-id="{{ $item->id }}" data-name="{{ $item->nomor_pesanan }}">
+                                                    data-id="{{ $item->id }}"
+                                                    data-name="{{ $item->nomor_pesanan }}">
                                                     <i class="ri-delete-bin-line"></i>
                                                 </button>
                                             @endif
@@ -348,6 +417,31 @@
                         });
                     }
                 );
+            });
+
+            // For guests: intercept "Pesan Sekarang" and show confirm before redirecting to login
+            document.querySelectorAll('.guest-pesan').forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var href = this.getAttribute('href');
+
+                    if (window.AlertHandler && typeof window.AlertHandler.confirm === 'function') {
+                        window.AlertHandler.confirm(
+                            'Perlu Login',
+                            'Anda harus login untuk melakukan pemesanan. Lanjut ke halaman login?',
+                            'Ya, Login',
+                            function() {
+                                window.location.href = href;
+                            }
+                        );
+                    } else {
+                        if (confirm(
+                                'Anda harus login untuk melakukan pemesanan. Lanjut ke halaman login?'
+                            )) {
+                            window.location.href = href;
+                        }
+                    }
+                });
             });
         });
     </script>

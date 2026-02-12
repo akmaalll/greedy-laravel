@@ -81,10 +81,10 @@
                         </div>
                         @endif
 
-                        <div class="mb-3">
+                        {{-- <div class="mb-3">
                             <label class="form-label">Catatan / Keterangan</label>
                             <textarea class="form-control" name="catatan" rows="2" placeholder="Contoh: Bukti transfer sudah dikirim via WhatsApp">{{ old('catatan') }}</textarea>
-                        </div>
+                        </div> --}}
 
                         <div class="mt-4">
                             <button type="submit" class="btn btn-primary w-100">

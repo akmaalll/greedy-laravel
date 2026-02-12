@@ -22,17 +22,17 @@ class PesananController extends Controller
     public function index()
     {
         $data = $this->service->all();
-        $paketLayanan = null;
+        // Load available packages for catalog (public)
+        $paketLayanan = PaketLayanan::with('layanan.kategori')
+            ->where('is_aktif', true)
+            ->get()
+            ->sortBy(function ($item) {
+                return $item->layanan->kategori->nama ?? 'Z Lainnya';
+            });
 
-        // If client, only show their orders and fetch available packages
-        if (auth()->user()->role_id == 3) {
+        // If authenticated client, only show their orders
+        if (auth()->check() && optional(auth()->user())->role_id == 3) {
             $data = $data->where('klien_id', auth()->id());
-            $paketLayanan = PaketLayanan::with('layanan.kategori')
-                ->where('is_aktif', true)
-                ->get()
-                ->sortBy(function ($item) {
-                    return $item->layanan->kategori->nama ?? 'Z Lainnya';
-                });
         }
 
         $categories = \App\Models\Kategori::where('is_aktif', true)->get();
@@ -68,12 +68,12 @@ class PesananController extends Controller
         $firstItem = $request->items[0] ?? null;
         if ($firstItem) {
             $paket = PaketLayanan::find($firstItem['paket_layanan_id']);
-            $mulai = \Carbon\Carbon::parse($data['tanggal_acara'].' '.$data['waktu_mulai_acara']);
+            $mulai = \Carbon\Carbon::parse($data['tanggal_acara'] . ' ' . $data['waktu_mulai_acara']);
 
             if ($paket->tipe_durasi == 'jam') {
-                $selesai = $mulai->copy()->addHours($paket->nilai_durasi);
+                $selesai = $mulai->copy()->addHours((int) $paket->nilai_durasi);
             } else {
-                $selesai = $mulai->copy()->addMinutes($paket->nilai_durasi);
+                $selesai = $mulai->copy()->addMinutes((int) $paket->nilai_durasi);
             }
 
             $data['waktu_selesai_acara'] = $selesai->format('H:i:s');

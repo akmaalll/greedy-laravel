@@ -73,14 +73,14 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-
+{{-- 
                         <div class="mb-3">
                             <label class="form-label">Catatan</label>
                             <textarea class="form-control @error('catatan') is-invalid @enderror" name="catatan" rows="3">{{ old('catatan', $data->catatan) }}</textarea>
                             @error('catatan')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                        </div>
+                        </div> --}}
                     </div>
                 </div>
             </div>
@@ -96,7 +96,7 @@
                     </div>
                 </div>
 
-                <div class="card text-center">
+                {{-- <div class="card text-center">
                     <div class="card-header border-bottom">
                         <h5 class="mb-0">Bukti Gambar</h5>
                     </div>
@@ -108,7 +108,7 @@
                         @endif
                         <input type="text" class="form-control form-control-sm" name="bukti_gambar" value="{{ old('bukti_gambar', $data->bukti_gambar) }}" placeholder="URL Bukti Gambar">
                     </div>
-                </div>
+                </div> --}}
             </div>
         </div>
     </form>

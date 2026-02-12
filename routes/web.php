@@ -10,12 +10,17 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 
 
+Route::middleware(['guest'])->group(function () {
+    Route::get('login', [AuthController::class, 'showLogin'])->name('login');
+    Route::post('login', [AuthController::class, 'login']);
+    Route::get('register', [AuthController::class, 'showRegister'])->name('register');
+    Route::post('register', [AuthController::class, 'register'])->name('register.store');
+});
+
+// Public catalog and home
+Route::get('/', [\App\Http\Controllers\PesananController::class, 'index'])->name('home');
+Route::get('pesanan', [\App\Http\Controllers\PesananController::class, 'index'])->name('pesanan.index');
 // Auth Routes
-Route::get('login', [AuthController::class, 'showLogin'])->name('login');
-Route::post('login', [AuthController::class, 'login']);
-Route::post('logout', [AuthController::class, 'logout'])->name('logout');
-Route::get('register', [AuthController::class, 'showRegister'])->name('register');
-Route::post('register', [AuthController::class, 'register'])->name('register.store');
 
 
 Route::get('/clear-all', function () {
@@ -25,7 +30,6 @@ Route::get('/clear-all', function () {
     \Artisan::call('view:clear');
 
     return "clear done";
-
 });
 
 Route::get('/cek-csrf', function () {
@@ -86,8 +90,10 @@ Route::get('/__reset-password/{email}', function ($email) {
 });
 
 Route::middleware(['auth'])->group(function () {
-    // Dashboard as home page
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // User CRUD routes
     Route::resource('user', UserController::class)->middleware('check.permission:user.index');
@@ -107,9 +113,9 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('layanan', \App\Http\Controllers\LayananController::class)->middleware('check.permission:layanan.index');
     Route::resource('paket-layanan', \App\Http\Controllers\PaketLayananController::class)->middleware('check.permission:paket-layanan.index');
 
-    // Transaksi & Core
-    Route::resource('pesanan', \App\Http\Controllers\PesananController::class)->middleware('check.permission:pesanan.index');
-    
+    // Transaksi & Core (other resource routes protected; index is public)
+    Route::resource('pesanan', \App\Http\Controllers\PesananController::class)->except(['index'])->middleware('check.permission:pesanan.index');
+
     // Jadwal & Penugasan
     Route::resource('penugasan-fotografer', \App\Http\Controllers\PenugasanFotograferController::class)->middleware('check.permission:penugasan-fotografer.index');
     Route::get('ketersediaan/existing-dates', [\App\Http\Controllers\KetersediaanFotograferController::class, 'getExistingDates'])->name('ketersediaan.existing-dates')->middleware('check.permission:ketersediaan.index');
@@ -136,4 +142,3 @@ Route::middleware(['auth'])->group(function () {
     Route::get('activity-log/data', [\App\Http\Controllers\ActivityLogController::class, 'getData'])->name('activity-log.data');
     Route::get('activity-log/statistics', [\App\Http\Controllers\ActivityLogController::class, 'statistics'])->name('activity-log.statistics');
 });
-
