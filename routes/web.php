@@ -1,13 +1,12 @@
 <?php
 
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\UserController;
-use Illuminate\Support\Facades\Route;
-
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductsController;
-use Illuminate\Support\Facades\Hash;
+use App\Http\Controllers\UserController;
 use App\Models\User;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Route;
 
 
 Route::middleware(['guest'])->group(function () {
@@ -61,7 +60,6 @@ Route::middleware(['auth'])->group(function () {
     // Rating & Ulasan
     Route::resource('rating-fotografer', \App\Http\Controllers\RatingFotograferController::class)->middleware('check.permission:rating-fotografer.index');
     Route::resource('rating-layanan', \App\Http\Controllers\RatingLayananController::class)->middleware('check.permission:rating-layanan.index');
-
 
     // Laporan
     Route::prefix('laporan')->name('laporan.')->middleware('check.permission:laporan')->group(function () {

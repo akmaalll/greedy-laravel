@@ -21,6 +21,8 @@ class PaketLayanan extends Model
         'harga_overtime',
         'satuan_overtime',
         'fitur',
+        'gambar',
+        'video',
         'is_aktif',
     ];
 

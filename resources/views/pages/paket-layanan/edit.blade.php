@@ -12,7 +12,7 @@
 
         <div class="row">
             <div class="col-md-10 mx-auto">
-                <form action="{{ route('paket-layanan.update', $data->id) }}" method="POST">
+                <form action="{{ route('paket-layanan.update', $data->id) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
                     <div class="row">
@@ -25,6 +25,43 @@
                                     </a>
                                 </div>
                                 <div class="card-body">
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label" for="gambar">Gambar Paket</label>
+                                        <input type="file" class="form-control @error('gambar') is-invalid @enderror"
+                                            id="gambar" name="gambar" accept="image/*">
+                                        <small class="text-muted">Format: JPG, PNG, WEBP. Max: 5MB. Biarkan kosong jika
+                                            tidak ingin mengubah.</small>
+                                        @error('gambar')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+
+                                        <div id="preview-gambar-container" class="mt-2 {{ $data->gambar ? '' : 'd-none' }}">
+                                            <label class="d-block mb-1 small text-muted">Preview Gambar:</label>
+                                            <img id="preview-gambar"
+                                                src="{{ $data->gambar ? asset('storage/' . $data->gambar) : '#' }}"
+                                                alt="Preview" class="img-thumbnail" style="max-height: 200px">
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label" for="video">Video Paket</label>
+                                        <input type="file" class="form-control @error('video') is-invalid @enderror"
+                                            id="video" name="video" accept="video/*">
+                                        <small class="text-muted">Format: MP4, MOV, AVI. Max: 50MB. Biarkan kosong jika
+                                            tidak ingin mengubah.</small>
+                                        @error('video')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+
+                                        <div id="preview-video-container" class="mt-2 {{ $data->video ? '' : 'd-none' }}">
+                                            <label class="d-block mb-1 small text-muted">Preview Video:</label>
+                                            <video id="preview-video" controls class="w-100" style="max-height: 200px">
+                                                @if ($data->video)
+                                                    <source src="{{ asset('storage/' . $data->video) }}" type="video/mp4">
+                                                @endif
+                                            </video>
+                                        </div>
+                                    </div>
                                     <div class="mb-3">
                                         <label class="form-label" for="layanan_id">Layanan <span
                                                 class="text-danger">*</span></label>
@@ -119,7 +156,8 @@
                                             <input type="number"
                                                 class="form-control @error('harga_dasar') is-invalid @enderror"
                                                 id="harga_dasar" name="harga_dasar"
-                                                value="{{ old('harga_dasar', (int) $data->harga_dasar) }}" placeholder="0">
+                                                value="{{ old('harga_dasar', (int) $data->harga_dasar) }}"
+                                                placeholder="0">
                                         </div>
                                         @error('harga_dasar')
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -229,6 +267,40 @@
                     } else {
                         item.querySelector('input').value = '';
                     }
+                }
+            });
+
+            // Preview Gambar
+            const inputGambar = document.getElementById('gambar');
+            const previewGambarContainer = document.getElementById('preview-gambar-container');
+            const previewGambar = document.getElementById('preview-gambar');
+
+            inputGambar.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewGambar.src = e.target.result;
+                        previewGambarContainer.classList.remove('d-none');
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Preview Video
+            const inputVideo = document.getElementById('video');
+            const previewVideoContainer = document.getElementById('preview-video-container');
+            const previewVideo = document.getElementById('preview-video');
+
+            inputVideo.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    const url = URL.createObjectURL(file);
+                    previewVideo.src = url;
+                    previewVideoContainer.classList.remove('d-none');
+
+                    // Reload video source
+                    previewVideo.load();
                 }
             });
         });

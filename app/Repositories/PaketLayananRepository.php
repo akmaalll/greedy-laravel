@@ -2,8 +2,8 @@
 
 namespace App\Repositories;
 
-use App\Models\PaketLayanan;
 use App\Interfaces\Repositories\PaketLayananRepositoryInterface;
+use App\Models\PaketLayanan;
 
 class PaketLayananRepository extends BaseRepository implements PaketLayananRepositoryInterface
 {
