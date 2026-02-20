@@ -30,6 +30,8 @@ class PaketLayanan extends Model
         'harga_dasar' => 'decimal:2',
         'harga_overtime' => 'decimal:2',
         'fitur' => 'array',
+        'gambar' => 'array',
+        'video' => 'array',
         'is_aktif' => 'boolean',
     ];
 

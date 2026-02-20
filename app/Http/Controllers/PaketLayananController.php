@@ -50,17 +50,25 @@ class PaketLayananController extends Controller
         }
 
         if ($request->hasFile('gambar')) {
-            $media = $this->fileUploadService->upload($request->file('gambar'), 'paket-layanan', 'public', [
-                'width' => 800,
-                'height' => 800,
-                'crop' => false,
-            ]);
-            $data['gambar'] = $media->path;
+            $gambarPaths = [];
+            foreach ($request->file('gambar') as $file) {
+                $media = $this->fileUploadService->upload($file, 'paket-layanan', 'public', [
+                    'width' => 800,
+                    'height' => 800,
+                    'crop' => false,
+                ]);
+                $gambarPaths[] = $media->path;
+            }
+            $data['gambar'] = $gambarPaths;
         }
 
         if ($request->hasFile('video')) {
-            $media = $this->fileUploadService->upload($request->file('video'), 'paket-layanan', 'public');
-            $data['video'] = $media->path;
+            $videoPaths = [];
+            foreach ($request->file('video') as $file) {
+                $media = $this->fileUploadService->upload($file, 'paket-layanan', 'public');
+                $videoPaths[] = $media->path;
+            }
+            $data['video'] = $videoPaths;
         }
 
         $this->service->create($data);
@@ -104,29 +112,53 @@ class PaketLayananController extends Controller
             $data['fitur'] = array_values(array_filter($request->fitur));
         }
 
+        // Handle Gambar (Images)
+        $currentGambar = is_array($paketLayanan->gambar) ? $paketLayanan->gambar : [];
+        $existingGambar = $request->input('existing_gambar', []);
+        
+        // Delete images that are no longer in existing_gambar
+        foreach ($currentGambar as $oldPath) {
+            if (!in_array($oldPath, $existingGambar)) {
+                if (Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
+            }
+        }
+
+        $newGambarPaths = [];
         if ($request->hasFile('gambar')) {
-            // Delete old image
-            if ($paketLayanan->gambar && Storage::disk('public')->exists($paketLayanan->gambar)) {
-                Storage::disk('public')->delete($paketLayanan->gambar);
+            foreach ($request->file('gambar') as $file) {
+                $media = $this->fileUploadService->upload($file, 'paket-layanan', 'public', [
+                    'width' => 800,
+                    'height' => 800,
+                    'crop' => false,
+                ]);
+                $newGambarPaths[] = $media->path;
             }
+        }
+        $data['gambar'] = array_merge($existingGambar, $newGambarPaths);
 
-            $media = $this->fileUploadService->upload($request->file('gambar'), 'paket-layanan', 'public', [
-                'width' => 800,
-                'height' => 800,
-                'crop' => false,
-            ]);
-            $data['gambar'] = $media->path;
+        // Handle Video
+        $currentVideo = is_array($paketLayanan->video) ? $paketLayanan->video : [];
+        $existingVideo = $request->input('existing_video', []);
+
+        // Delete videos that are no longer in existing_video
+        foreach ($currentVideo as $oldPath) {
+            if (!in_array($oldPath, $existingVideo)) {
+                if (Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
+            }
         }
 
+        $newVideoPaths = [];
         if ($request->hasFile('video')) {
-            // Delete old video
-            if ($paketLayanan->video && Storage::disk('public')->exists($paketLayanan->video)) {
-                Storage::disk('public')->delete($paketLayanan->video);
+            foreach ($request->file('video') as $file) {
+                $media = $this->fileUploadService->upload($file, 'paket-layanan', 'public');
+                $newVideoPaths[] = $media->path;
             }
-
-            $media = $this->fileUploadService->upload($request->file('video'), 'paket-layanan', 'public');
-            $data['video'] = $media->path;
         }
+        $data['video'] = array_merge($existingVideo, $newVideoPaths);
 
         $this->service->update($id, $data);
 
@@ -142,11 +174,19 @@ class PaketLayananController extends Controller
         $paketLayanan = $this->service->find($id);
 
         // Delete associated files
-        if ($paketLayanan->gambar && Storage::disk('public')->exists($paketLayanan->gambar)) {
-            Storage::disk('public')->delete($paketLayanan->gambar);
+        if ($paketLayanan->gambar && is_array($paketLayanan->gambar)) {
+            foreach ($paketLayanan->gambar as $g) {
+                if (Storage::disk('public')->exists($g)) {
+                    Storage::disk('public')->delete($g);
+                }
+            }
         }
-        if ($paketLayanan->video && Storage::disk('public')->exists($paketLayanan->video)) {
-            Storage::disk('public')->delete($paketLayanan->video);
+        if ($paketLayanan->video && is_array($paketLayanan->video)) {
+            foreach ($paketLayanan->video as $v) {
+                if (Storage::disk('public')->exists($v)) {
+                    Storage::disk('public')->delete($v);
+                }
+            }
         }
 
         $this->service->delete($id);

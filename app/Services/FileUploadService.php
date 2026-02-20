@@ -6,8 +6,8 @@ use App\Models\Media;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
 
 class FileUploadService
 {
@@ -15,17 +15,15 @@ class FileUploadService
 
     public function __construct()
     {
-        $this->imageManager = new ImageManager(new Driver());
+        $this->imageManager = new ImageManager(new Driver);
     }
 
     /**
      * Upload a file and record it in database
      *
-     * @param UploadedFile $file
-     * @param string $folder Folder in disk (e.g. 'avatars')
-     * @param string $disk Disk name (default: 'public')
-     * @param array $options Extra options (resize_width, resize_height, etc)
-     * @return Media
+     * @param  string  $folder  Folder in disk (e.g. 'avatars')
+     * @param  string  $disk  Disk name (default: 'public')
+     * @param  array  $options  Extra options (resize_width, resize_height, etc)
      */
     public function upload(UploadedFile $file, string $folder = 'uploads', string $disk = 'public', array $options = []): Media
     {
@@ -36,7 +34,7 @@ class FileUploadService
         $path = "{$folder}/{$filename}";
 
         // Process Image if needed
-        if (str_starts_with($mimeType, 'image/') && !empty($options)) {
+        if (str_starts_with($mimeType, 'image/') && ! empty($options)) {
             $this->processImage($file, $path, $disk, $options);
         } else {
             // Standard upload
@@ -59,15 +57,13 @@ class FileUploadService
 
     /**
      * Delete media and its file
-     *
-     * @param Media $media
-     * @return bool
      */
     public function delete(Media $media): bool
     {
         if (Storage::disk($media->disk)->exists($media->path)) {
             Storage::disk($media->disk)->delete($media->path);
         }
+
         return $media->delete();
     }
 
@@ -77,7 +73,8 @@ class FileUploadService
     protected function generateFilename(string $originalName, string $extension): string
     {
         $name = pathinfo($originalName, PATHINFO_FILENAME);
-        return Str::slug($name) . '-' . time() . '.' . $extension;
+
+        return Str::slug($name).'-'.time().'.'.$extension;
     }
 
     /**
@@ -91,7 +88,7 @@ class FileUploadService
         if (isset($options['width']) || isset($options['height'])) {
             $width = $options['width'] ?? null;
             $height = $options['height'] ?? null;
-            
+
             if (isset($options['crop']) && $options['crop']) {
                 $image->cover($width, $height);
             } else {
@@ -111,7 +108,7 @@ class FileUploadService
     protected function getMeta(UploadedFile $file, array $options): array
     {
         $meta = $options['meta'] ?? [];
-        
+
         if (str_starts_with($file->getMimeType(), 'image/')) {
             try {
                 $size = getimagesize($file);
@@ -121,7 +118,7 @@ class FileUploadService
                 // Ignore if not a valid image
             }
         }
-        
+
         return $meta;
     }
 }

@@ -26,238 +26,266 @@
 
 @section('content')
     <div class="container-xxl flex-grow-1 container-p-y">
-        @if (auth()->check() && auth()->user()->role->slug == 'client')
-            {{-- CLIENT VIEW --}}
-            <div class="row mb-6">
-                <div class="col-12">
-                    <div class="card bg-primary text-white"
-                        style="background: linear-gradient(72.47deg, #696cff 22.16%, rgba(105, 108, 255, 0.7) 76.47%) !important;">
-                        <div class="card-body d-flex align-items-center justify-content-between p-6">
-                            <div>
-                                <h3 class="text-white mb-2">Halo, {{ auth()->user()->name }}! 👋</h3>
-                                <p class="mb-0">Abadikan momen spesial Anda dengan layanan fotografi profesional kami.</p>
-                            </div>
-                            <div class="d-none d-md-block px-4">
-                                <i class="ri-camera-lens-line ri-64px opacity-25"></i>
-                            </div>
-                        </div>
-                    </div>
+        {{-- PUBLIC / CLIENT VIEW --}}
+        @if (!auth()->check() || auth()->user()->role->slug == 'client')
+
+            {{-- CATALOG SECTION (Visible to guests and clients) --}}
+            <!-- Katalog Pesanan (Header & Filters) -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
+                <h4 class="fw-bold mb-0">Pilih Layanan Kami</h4>
+
+                <div class="btn-group" role="group" aria-label="Filter Kategori">
+                    <button type="button" class="btn btn-primary active filter-btn" data-filter="all">Semua</button>
+                    @foreach ($categories as $cat)
+                        <button type="button" class="btn btn-outline-primary filter-btn" data-filter="{{ $cat->id }}">
+                            {{ $cat->nama }}
+                        </button>
+                    @endforeach
                 </div>
             </div>
 
-            <!-- End Greeting -->
-        @endif
+            <!-- Service Catalog -->
+            <div class="row mb-6" id="catalog-container">
+                @foreach ($paketLayanan as $paket)
+                    <div class="col-md-6 col-lg-3 mb-4 package-item" data-category-id="{{ $paket->layanan->kategori_id }}">
+                        <div class="card h-100 shadow-sm border-0 overflow-hidden">
+                            {{-- Package Media Header (Carousel) --}}
+                            <div class="position-relative" style="height: 200px;">
+                                <div id="cardCarousel-{{ $paket->id }}" class="carousel slide h-100"
+                                    data-bs-ride="carousel">
+                                    <div class="carousel-inner h-100">
+                                        @php
+                                            $allMedia = is_array($paket->gambar)
+                                                ? $paket->gambar
+                                                : ($paket->gambar
+                                                    ? [$paket->gambar]
+                                                    : []);
+                                            $videoPath = is_array($paket->video)
+                                                ? $paket->video[0] ?? null
+                                                : $paket->video;
+                                        @endphp
 
-        <!-- Katalog Pesanan (Header & Filters) -->
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
-            <h4 class="fw-bold mb-0">Pilih Layanan Kami</h4>
-
-            <div class="btn-group" role="group" aria-label="Filter Kategori">
-                <button type="button" class="btn btn-primary active filter-btn" data-filter="all">Semua</button>
-                @foreach ($categories as $cat)
-                    <button type="button" class="btn btn-outline-primary filter-btn" data-filter="{{ $cat->id }}">
-                        {{ $cat->nama }}
-                    </button>
-                @endforeach
-            </div>
-        </div>
-
-        <!-- Service Catalog -->
-        <div class="row mb-6" id="catalog-container">
-            @foreach ($paketLayanan as $paket)
-                <div class="col-md-6 col-lg-3 mb-4 package-item" data-category-id="{{ $paket->layanan->kategori_id }}">
-                    <div class="card h-100 shadow-sm border-0 overflow-hidden">
-                        {{-- Package Media Header --}}
-                        <div class="position-relative" style="height: 180px;">
-                            @if ($paket->gambar)
-                                <img src="{{ asset('storage/' . $paket->gambar) }}" alt="{{ $paket->nama }}"
-                                    class="w-100 h-100 object-fit-cover cursor-pointer popup-image">
-                            @else
-                                <div class="w-100 h-100 bg-label-primary d-flex align-items-center justify-content-center">
-                                    <i class="ri-camera-lens-line ri-64px opacity-25"></i>
-                                </div>
-                            @endif
-
-                            <div class="position-absolute top-0 start-0 m-3">
-                                <span
-                                    class="badge bg-white text-primary shadow-sm">{{ $paket->layanan->kategori->nama ?? 'Umum' }}</span>
-                            </div>
-
-                            @if ($paket->video)
-                                <div class="position-absolute bottom-0 end-0 m-3">
-                                    <button type="button"
-                                        class="btn btn-sm btn-primary rounded-pill btn-icon shadow-sm popup-video-trigger"
-                                        data-video="{{ asset('storage/' . $paket->video) }}">
-                                        <i class="ri-play-fill ri-20px"></i>
-                                    </button>
-                                </div>
-                            @endif
-                        </div>
-
-                        <div class="card-body p-4 d-flex flex-column">
-                            <div class="mb-3">
-                                <h5 class="card-title fw-bold mb-1">{{ $paket->nama }}</h5>
-                                <small class="text-muted d-block"><i
-                                        class="ri-settings-4-line me-1"></i>{{ $paket->layanan->nama ?? '-' }}</small>
-                            </div>
-
-                            <div class="mb-3">
-                                <h4 class="text-primary fw-bold mb-0">
-                                    <small class="fs-6 fw-normal text-muted">Mulai</small>
-                                    Rp {{ number_format($paket->harga_dasar, 0, ',', '.') }}
-                                </h4>
-                            </div>
-
-                            <div class="features-list mb-4 flex-grow-1">
-                                <label class="small fw-bold text-muted text-uppercase mb-2 d-block">Detail Paket:</label>
-                                <ul class="list-unstyled mb-0">
-                                    @php
-                                        $features = is_array($paket->fitur)
-                                            ? $paket->fitur
-                                            : ($paket->fitur
-                                                ? explode(',', $paket->fitur)
-                                                : []);
-                                    @endphp
-                                    @forelse(array_slice($features, 0, 5) as $f)
-                                        <li class="small mb-2 d-flex align-items-start text-muted">
-                                            <i class="ri-checkbox-circle-fill text-success me-2 mt-1"></i>
-                                            <span>{{ trim($f) }}</span>
-                                        </li>
-                                    @empty
-                                        <li class="small text-muted italic">Lihat detail untuk informasi lebih lanjut.</li>
-                                    @endforelse
-                                    @if (count($features) > 5)
-                                        <li class="small text-primary mt-1">+ {{ count($features) - 5 }} fitur lainnya
-                                        </li>
+                                        @forelse($allMedia as $index => $img)
+                                            <div class="carousel-item h-100 {{ $index === 0 ? 'active' : '' }}">
+                                                <img src="{{ asset('storage/' . $img) }}"
+                                                    class="w-100 h-100 object-fit-cover cursor-pointer popup-image"
+                                                    data-index="{{ $index }}" data-all='@json(array_map(fn($g) => asset('storage/' . $g), $allMedia))'
+                                                    alt="{{ $paket->nama }}">
+                                            </div>
+                                        @empty
+                                            <div class="carousel-item active h-100">
+                                                <div
+                                                    class="w-100 h-100 bg-label-primary d-flex align-items-center justify-content-center">
+                                                    <i class="ri-camera-lens-line ri-64px opacity-25"></i>
+                                                </div>
+                                            </div>
+                                        @endforelse
+                                    </div>
+                                    @if (count($allMedia) > 1)
+                                        <button class="carousel-control-prev" type="button"
+                                            data-bs-target="#cardCarousel-{{ $paket->id }}" data-bs-slide="prev"
+                                            style="width: 30px; background: transparent; border: 0;">
+                                            <span class="carousel-control-prev-icon" aria-hidden="true"
+                                                style="width: 1.5rem; height: 1.5rem;"></span>
+                                        </button>
+                                        <button class="carousel-control-next" type="button"
+                                            data-bs-target="#cardCarousel-{{ $paket->id }}" data-bs-slide="next"
+                                            style="width: 30px; background: transparent; border: 0;">
+                                            <span class="carousel-control-next-icon" aria-hidden="true"
+                                                style="width: 1.5rem; height: 1.5rem;"></span>
+                                        </button>
                                     @endif
-                                </ul>
-                            </div>
+                                </div>
 
-                            <div class="mt-auto pt-3 border-top">
-                                @if (auth()->check())
-                                    <a href="{{ route('pesanan.create', ['selected_paket' => $paket->id]) }}"
-                                        class="btn btn-primary w-100 fw-bold">Pesan Sekarang</a>
-                                @else
-                                    <a href="{{ route('login', ['selected_paket' => $paket->id]) }}"
-                                        class="btn btn-primary w-100 fw-bold guest-pesan">Pesan Sekarang</a>
+                                {{-- Overlays --}}
+                                <div class="position-absolute top-0 start-0 m-3" style="z-index: 5;">
+                                    <span
+                                        class="badge bg-primary shadow-sm">{{ $paket->layanan->kategori->nama ?? 'Umum' }}</span>
+                                </div>
+
+                                @if ($videoPath)
+                                    <div class="position-absolute bottom-0 end-0 m-3" style="z-index: 5;">
+                                        <button type="button"
+                                            class="btn btn-sm btn-dark rounded-pill btn-icon shadow-sm popup-video-trigger"
+                                            data-index="0" data-all='@json(is_array($paket->video)
+                                                    ? array_map(fn($v) => asset('storage/' . $v), $paket->video)
+                                                    : [$paket->video ? asset('storage/' . $paket->video) : '']
+                                            )'>
+                                            <i class="ri-play-fill ri-20px"></i>
+                                        </button>
+                                    </div>
                                 @endif
                             </div>
+
+                            <div class="card-body p-4 d-flex flex-column">
+                                <div class="mb-3">
+                                    <h5 class="card-title fw-bold mb-1">{{ $paket->nama }}</h5>
+                                    <small class="text-muted d-block"><i
+                                            class="ri-settings-4-line me-1"></i>{{ $paket->layanan->nama ?? '-' }}</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h4 class="text-primary fw-bold mb-0">
+                                        <small class="fs-6 fw-normal text-muted">Mulai</small>
+                                        Rp {{ number_format($paket->harga_dasar, 0, ',', '.') }}
+                                    </h4>
+                                </div>
+
+                                <div class="features-list mb-4 flex-grow-1">
+                                    <label class="small fw-bold text-muted text-uppercase mb-2 d-block">Detail
+                                        Paket:</label>
+                                    <ul class="list-unstyled mb-0">
+                                        @php
+                                            $features = is_array($paket->fitur)
+                                                ? $paket->fitur
+                                                : ($paket->fitur
+                                                    ? explode(',', $paket->fitur)
+                                                    : []);
+                                        @endphp
+                                        @forelse(array_slice($features, 0, 5) as $f)
+                                            <li class="small mb-2 d-flex align-items-start text-muted">
+                                                <i class="ri-checkbox-circle-fill text-success me-2 mt-1"></i>
+                                                <span>{{ trim($f) }}</span>
+                                            </li>
+                                        @empty
+                                            <li class="small text-muted italic">Lihat detail untuk informasi lebih lanjut.
+                                            </li>
+                                        @endforelse
+                                        @if (count($features) > 5)
+                                            <li class="small text-primary mt-1">+ {{ count($features) - 5 }} fitur
+                                                lainnya
+                                            </li>
+                                        @endif
+                                    </ul>
+                                </div>
+
+                                <div class="mt-auto pt-3 border-top">
+                                    @if (auth()->check())
+                                        <a href="{{ route('pesanan.create', ['selected_paket' => $paket->id]) }}"
+                                            class="btn btn-primary w-100 fw-bold">Pesan Sekarang</a>
+                                    @else
+                                        <a href="{{ route('login', ['selected_paket' => $paket->id]) }}"
+                                            class="btn btn-primary w-100 fw-bold guest-pesan">Pesan Sekarang</a>
+                                    @endif
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            @endforeach
-        </div>
+                @endforeach
+            </div>
 
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                const buttons = document.querySelectorAll('.filter-btn');
-                const items = document.querySelectorAll('.package-item');
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const buttons = document.querySelectorAll('.filter-btn');
+                    const items = document.querySelectorAll('.package-item');
 
-                buttons.forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        // Activate button
-                        buttons.forEach(b => {
-                            b.classList.remove('btn-primary', 'active');
-                            b.classList.add('btn-outline-primary');
-                        });
-                        this.classList.remove('btn-outline-primary');
-                        this.classList.add('btn-primary', 'active');
+                    buttons.forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            // Activate button
+                            buttons.forEach(b => {
+                                b.classList.remove('btn-primary', 'active');
+                                b.classList.add('btn-outline-primary');
+                            });
+                            this.classList.remove('btn-outline-primary');
+                            this.classList.add('btn-primary', 'active');
 
-                        const filter = this.getAttribute('data-filter');
+                            const filter = this.getAttribute('data-filter');
 
-                        // Filter items
-                        items.forEach(item => {
-                            if (filter === 'all' || item.getAttribute('data-category-id') ==
-                                filter) {
-                                item.style.display = 'block';
-                                item.classList.add('animate__animated', 'animate__fadeIn');
-                            } else {
-                                item.style.display = 'none';
-                                item.classList.remove('animate__animated', 'animate__fadeIn');
-                            }
+                            // Filter items
+                            items.forEach(item => {
+                                if (filter === 'all' || item.getAttribute('data-category-id') ==
+                                    filter) {
+                                    item.style.display = 'block';
+                                    item.classList.add('animate__animated', 'animate__fadeIn');
+                                } else {
+                                    item.style.display = 'none';
+                                    item.classList.remove('animate__animated', 'animate__fadeIn');
+                                }
+                            });
                         });
                     });
                 });
-            });
-        </script>
+            </script>
 
-        @if (auth()->check() && auth()->user()->role->slug == 'client')
-            <!-- History Orders Section -->
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center border-bottom">
-                    <h5 class="mb-0">Riwayat Pesanan Anda</h5>
-                </div>
-                <div class="card-datatable table-responsive">
-                    <table class="table table-hover border-top" id="table-pesanan-client">
-                        <thead>
-                            <tr>
-                                <th>No. Pesanan</th>
-                                <th>Tanggal & Waktu</th>
-                                <th>Lokasi</th>
-                                <th>Status</th>
-                                <th>Total Harga</th>
-                                <th class="text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($data as $item)
+            {{-- CLIENT HISTORY SECTION (Only for logged in clients) --}}
+            @if (auth()->check() && auth()->user()->role->slug == 'client')
+                <!-- History Orders Section -->
+                <div class="card mb-6">
+                    <div class="card-header d-flex justify-content-between align-items-center border-bottom">
+                        <h5 class="mb-0">Riwayat Pesanan Anda</h5>
+                    </div>
+                    <div class="card-datatable table-responsive">
+                        <table class="table table-hover border-top" id="table-pesanan-client">
+                            <thead>
                                 <tr>
-                                    <td>
-                                        <span class="fw-bold text-primary">#{{ $item->nomor_pesanan }}</span>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex flex-column">
-                                            <span
-                                                class="fw-semibold">{{ $item->tanggal_acara ? \Carbon\Carbon::parse($item->tanggal_acara)->format('d M Y') : '-' }}</span>
-                                            <small class="text-muted">{{ $item->waktu_mulai_acara ?? '-' }}</small>
-                                        </div>
-                                    </td>
-                                    <td class="text-truncate" style="max-width: 200px;">
-                                        {{ $item->lokasi_acara }}
-                                    </td>
-                                    <td>
-                                        @php
-                                            $statusColors = [
-                                                'menunggu' => 'warning',
-                                                'dikonfirmasi' => 'primary',
-                                                'berlangsung' => 'info',
-                                                'selesai' => 'success',
-                                                'dibatalkan' => 'danger',
-                                            ];
-                                            $color = $statusColors[$item->status] ?? 'secondary';
-                                        @endphp
-                                        <span class="badge bg-label-{{ $color }} text-uppercase">
-                                            {{ $item->status }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="fw-bold">Rp
-                                            {{ number_format($item->total_harga, 0, ',', '.') }}</span>
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="btn-group">
-                                            <a href="{{ route('pesanan.show', $item->id) }}"
-                                                class="btn btn-sm btn-outline-info" title="Detail">
-                                                <i class="ri-eye-line"></i>
-                                            </a>
-                                            @if ($item->status == 'menunggu')
-                                                <a href="{{ route('pesanan.edit', $item->id) }}"
-                                                    class="btn btn-sm btn-outline-primary" title="Edit">
-                                                    <i class="ri-pencil-line"></i>
-                                                </a>
-                                            @endif
-                                        </div>
-                                    </td>
+                                    <th>No. Pesanan</th>
+                                    <th>Tanggal & Waktu</th>
+                                    <th>Lokasi</th>
+                                    <th>Status</th>
+                                    <th>Total Harga</th>
+                                    <th class="text-center">Aksi</th>
                                 </tr>
-                            @empty
-                                {{-- Handled by DataTables --}}
-                            @endforelse
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @forelse($data as $item)
+                                    <tr>
+                                        <td>
+                                            <span class="fw-bold text-primary">#{{ $item->nomor_pesanan }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex flex-column">
+                                                <span
+                                                    class="fw-semibold">{{ $item->tanggal_acara ? \Carbon\Carbon::parse($item->tanggal_acara)->format('d M Y') : '-' }}</span>
+                                                <small class="text-muted">{{ $item->waktu_mulai_acara ?? '-' }}</small>
+                                            </div>
+                                        </td>
+                                        <td class="text-truncate" style="max-width: 200px;">
+                                            {{ $item->lokasi_acara }}
+                                        </td>
+                                        <td>
+                                            @php
+                                                $statusColors = [
+                                                    'menunggu' => 'warning',
+                                                    'dikonfirmasi' => 'primary',
+                                                    'berlangsung' => 'info',
+                                                    'selesai' => 'success',
+                                                    'dibatalkan' => 'danger',
+                                                ];
+                                                $color = $statusColors[$item->status] ?? 'secondary';
+                                            @endphp
+                                            <span class="badge bg-label-{{ $color }} text-uppercase">
+                                                {{ $item->status }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="fw-bold">Rp
+                                                {{ number_format($item->total_harga, 0, ',', '.') }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group">
+                                                <a href="{{ route('pesanan.show', $item->id) }}"
+                                                    class="btn btn-sm btn-outline-info" title="Detail">
+                                                    <i class="ri-eye-line"></i>
+                                                </a>
+                                                @if ($item->status == 'menunggu')
+                                                    <a href="{{ route('pesanan.edit', $item->id) }}"
+                                                        class="btn btn-sm btn-outline-primary" title="Edit">
+                                                        <i class="ri-pencil-line"></i>
+                                                    </a>
+                                                @endif
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    {{-- Handled by DataTables --}}
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
+            @endif
         @elseif(auth()->check())
-            {{-- ADMIN & PHOTOGRAPHER VIEW (Original Table) --}}
+            {{-- ADMIN & PHOTOGRAPHER VIEW --}}
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4 class="fw-bold mb-0">
                     <span class="text-muted fw-light">Transaksi /</span> Daftar Pesanan
@@ -359,8 +387,18 @@
             <div class="modal-content bg-transparent border-0 shadow-none">
                 <div class="modal-body p-0 text-center position-relative">
                     <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-2"
-                        data-bs-dismiss="modal" aria-label="Close"></button>
-                    <img id="popup-image-src" src="" alt="Popup Image" class="img-fluid rounded shadow-lg">
+                        style="z-index: 1060" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div id="imageCarousel" class="carousel slide" data-bs-interval="false">
+                        <div class="carousel-inner" id="carousel-images-inner"></div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#imageCarousel"
+                            data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#imageCarousel"
+                            data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -372,8 +410,18 @@
             <div class="modal-content bg-transparent border-0 shadow-none">
                 <div class="modal-body p-0 text-center position-relative">
                     <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-2"
-                        data-bs-dismiss="modal" aria-label="Close"></button>
-                    <video id="popup-video-src" controls class="w-100 rounded shadow-lg" autoplay></video>
+                        style="z-index: 1060" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div id="videoCarousel" class="carousel slide" data-bs-interval="false">
+                        <div class="carousel-inner" id="carousel-videos-inner"></div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#videoCarousel"
+                            data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#videoCarousel"
+                            data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -413,6 +461,48 @@
         .features-list ul li i {
             font-size: 1.1rem;
         }
+
+        /* Main Popup Carousel Controls */
+        #imagePopupModal .carousel-control-prev,
+        #imagePopupModal .carousel-control-next,
+        #videoPopupModal .carousel-control-prev,
+        #videoPopupModal .carousel-control-next {
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            top: 50%;
+            transform: translateY(-50%);
+            margin: 0 15px;
+            opacity: 0.8;
+            z-index: 1070;
+        }
+
+        #imagePopupModal .carousel-control-prev:hover,
+        #imagePopupModal .carousel-control-next:hover,
+        #videoPopupModal .carousel-control-prev:hover,
+        #videoPopupModal .carousel-control-next:hover {
+            background: rgba(0, 0, 0, 0.8);
+            opacity: 1;
+        }
+
+        /* Card Header Carousel Controls */
+        .package-item .carousel-control-prev,
+        .package-item .carousel-control-next {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .package-item .card:hover .carousel-control-prev,
+        .package-item .card:hover .carousel-control-next {
+            opacity: 1;
+        }
+
+        .carousel-item img,
+        .carousel-item video {
+            max-height: 85vh;
+            object-fit: contain;
+        }
     </style>
 @endsection
 
@@ -424,23 +514,71 @@
 
             // Handle Image Popup
             $(document).on('click', '.popup-image', function() {
-                const src = $(this).attr('src');
-                $('#popup-image-src').attr('src', src);
+                const allImages = $(this).data('all');
+                const selectedIndex = parseInt($(this).data('index')) || 0;
+
+                const carouselInner = $('#carousel-images-inner');
+                carouselInner.empty();
+
+                if (allImages && Array.isArray(allImages)) {
+                    allImages.forEach((src, idx) => {
+                        carouselInner.append(`
+                            <div class="carousel-item ${idx === selectedIndex ? 'active' : ''}">
+                                <img src="${src}" class="img-fluid rounded shadow-lg mx-auto d-block">
+                            </div>
+                        `);
+                    });
+
+                    const controls = $(
+                        '#imageCarousel .carousel-control-prev, #imageCarousel .carousel-control-next');
+                    if (allImages.length <= 1) controls.addClass('d-none');
+                    else controls.removeClass('d-none');
+
+                    // Re-initialize carousel to ensure it works with new content
+                    const carouselEl = document.getElementById('imageCarousel');
+                    const carousel = bootstrap.Carousel.getOrCreateInstance(carouselEl);
+                    carousel.to(selectedIndex);
+                }
+
                 imagePopupModal.show();
             });
 
             // Handle Video Popup
             $(document).on('click', '.popup-video-trigger', function() {
-                const src = $(this).data('video');
-                $('#popup-video-src').attr('src', src);
-                $('#popup-video-src')[0].load();
+                const allVideos = $(this).data('all');
+                const selectedIndex = parseInt($(this).data('index')) || 0;
+
+                const carouselInner = $('#carousel-videos-inner');
+                carouselInner.empty();
+
+                if (allVideos && Array.isArray(allVideos)) {
+                    allVideos.forEach((src, idx) => {
+                        carouselInner.append(`
+                            <div class="carousel-item ${idx === selectedIndex ? 'active' : ''}">
+                                <video src="${src}" controls class="w-100 rounded shadow-lg"></video>
+                            </div>
+                        `);
+                    });
+
+                    const controls = $(
+                        '#videoCarousel .carousel-control-prev, #videoCarousel .carousel-control-next');
+                    if (allVideos.length <= 1) controls.addClass('d-none');
+                    else controls.removeClass('d-none');
+
+                    // Re-initialize carousel
+                    const carouselEl = document.getElementById('videoCarousel');
+                    const carousel = bootstrap.Carousel.getOrCreateInstance(carouselEl);
+                    carousel.to(selectedIndex);
+                }
+
                 videoPopupModal.show();
             });
 
             // Pause video when popup is closed
             document.getElementById('videoPopupModal').addEventListener('hidden.bs.modal', function() {
-                $('#popup-video-src')[0].pause();
-                $('#popup-video-src').attr('src', '');
+                $('#carousel-videos-inner video').each(function() {
+                    this.pause();
+                });
             });
             // Initialize DataTables
             const tableClient = $('#table-pesanan-client');
